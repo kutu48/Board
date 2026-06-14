@@ -26,22 +26,39 @@
     .small{font-size:13px;color:#94a3b8}
     .scorebox{text-align:center;font-size:44px;font-weight:900;background:#020617;border-radius:16px;padding:14px;margin:8px 0}
     .historyItem{background:#0f172a;border:1px solid #334155;padding:10px;border-radius:12px;margin:8px 0;font-size:14px}
-    .menuWrap{display:grid;grid-template-columns:260px 1fr;gap:12px;margin:12px}
-    .menuList{background:#111827;border:1px solid #334155;border-radius:18px;padding:12px;height:max-content;position:sticky;top:78px}
-    .menuTitle{font-size:13px;color:#94a3b8;text-transform:uppercase;font-weight:900;margin:12px 8px 6px}
-    .menuBtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#0f172a;border:1px solid #334155;margin:6px 0;padding:12px;border-radius:14px;color:#e2e8f0}
+    .menuWrap{margin:0;padding-bottom:82px}
+    .menuList{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#020617;border-top:1px solid #334155;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px}
+    .menuTitle{display:none}
+    .menuBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;background:#0f172a;border:1px solid #334155;margin:0;padding:9px 4px;border-radius:14px;color:#e2e8f0;font-size:11px;min-height:54px;text-align:center}
     .menuBtn.active{background:#2563eb;border-color:#93c5fd;color:#fff}
-    .menuContent{min-width:0}
+    .menuContent{min-width:0;padding:0}
     .menuSection{display:none}
     .menuSection.active{display:block}
     .miniActions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
-    .counterGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    .teamCounter{background:#0f172a;border:1px solid #334155;border-radius:18px;padding:16px}
-    .bigScore{font-size:60px;font-weight:900;text-align:center;background:#020617;border-radius:18px;padding:16px;margin:10px 0}
-    @media(max-width:800px){
-      .menuWrap{grid-template-columns:1fr;margin:8px}
-      .menuList{position:relative;top:0}
-      .counterGrid{grid-template-columns:1fr}
+    .subMenu{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px}
+    .subBtn{background:#111827;border:1px solid #334155;color:#e2e8f0;border-radius:14px;padding:12px;font-weight:900}
+    .subBtn.active{background:#2563eb;border-color:#93c5fd;color:#fff}
+    .subPanel{display:none}
+    .subPanel.active{display:block}
+    .counterGrid{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 148px);margin:-12px}
+    .teamCounter{border:0;border-radius:0;padding:12px;display:flex;flex-direction:column;justify-content:center;min-height:calc(100vh - 148px)}
+    .teamCounter.teamABox{background:linear-gradient(135deg,#1d4ed8,#020617)}
+    .teamCounter.teamBBox{background:linear-gradient(135deg,#b91c1c,#020617)}
+    .teamCounter h2{font-size:20px;text-align:center;margin:0 0 8px;line-height:1.1}
+    .bigScore{font-size:86px;font-weight:900;text-align:center;background:#0007;border-radius:20px;padding:18px 8px;margin:10px 0;text-shadow:0 8px 22px #000}
+    .scoreBtns{display:grid;grid-template-columns:1fr;gap:10px}
+    .scoreBtns button{font-size:24px;padding:20px 8px;border-radius:18px}
+    .controlHeaderMini{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#020617;border-bottom:1px solid #334155;position:sticky;top:0;z-index:20}
+    .controlHeaderMini h1{font-size:17px;margin:0}
+    .controlHeaderMini .small{font-size:11px}
+    .sectionTitle{font-size:18px;margin:12px 12px 0}
+    @media(min-width:900px){
+      .menuWrap{display:grid;grid-template-columns:260px 1fr;gap:12px;margin:12px;padding-bottom:0}
+      .menuList{position:sticky;top:78px;display:block;border:1px solid #334155;border-radius:18px;padding:12px;height:max-content}
+      .menuTitle{display:block;font-size:13px;color:#94a3b8;text-transform:uppercase;font-weight:900;margin:12px 8px 6px}
+      .menuBtn{display:flex;flex-direction:row;justify-content:flex-start;text-align:left;font-size:15px;margin:6px 0;padding:12px;min-height:auto}
+      .counterGrid{gap:12px;min-height:auto;margin:0}
+      .teamCounter{border:1px solid #334155;border-radius:18px;min-height:auto}
     }
     .top{height:14vh;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#020617;border-bottom:4px solid #334155}
     .event{font-size:4.5vh;font-weight:900;letter-spacing:.08em;text-align:center}
@@ -109,153 +126,51 @@
 </div>
 
 <div id="controlPage" class="page hidden">
-  <header>
+  <div class="controlHeaderMini">
     <div>
-      <h1>Control Scoreboard Online</h1>
-      <div class="small">Menu control dibagi: Setting, Pertandingan, History, dan Wasit</div>
+      <h1>Scoreboard Control</h1>
+      <div class="small">HP Wasit / Admin</div>
     </div>
     <div>
-      <a href="?display=1" target="_blank">Buka Display</a> |
-      <a href="javascript:showSetup()">Setup Firebase</a>
+      <a href="?display=1" target="_blank">TV</a> |
+      <a href="javascript:showSetup()">Setup</a>
     </div>
-  </header>
+  </div>
 
   <div class="card" id="loginCard">
     <h2>Login Admin</h2>
-    <input id="adminPassword" type="password" placeholder="Masukkan password admin">
-    <button class="green" onclick="adminLogin()">LOGIN ADMIN</button>
-    <div class="small">Default password: admin123</div>
+    <input id="adminPassword" type="password" placeholder="Password admin">
+    <button class="green" onclick="adminLogin()">LOGIN</button>
+    <div class="small">Default: admin123</div>
   </div>
 
   <div id="adminPanel" class="hidden">
     <div class="menuWrap">
       <div class="menuList">
-        <div class="menuTitle">Setting</div>
-        <button class="menuBtn active" onclick="openMenu('menuSetting', this)">⚙ Ganti Password Admin</button>
-
-        <div class="menuTitle">Setting Pertandingan</div>
-        <button class="menuBtn" onclick="openMenu('menuDataMatch', this)">🏆 Setting Data Pertandingan</button>
-        <button class="menuBtn" onclick="openMenu('menuTeam', this)">👥 Nama Team</button>
-        <button class="menuBtn" onclick="openMenu('menuPlayers', this)">🏸 Nama Pemain</button>
-        <button class="menuBtn" onclick="openMenu('menuVisual', this)">🎨 Warna & Logo Team</button>
-
-        <div class="menuTitle">History Pertandingan</div>
-        <button class="menuBtn" onclick="openMenu('menuHistory', this)">📜 History, Edit & Hapus</button>
-
-        <div class="menuTitle">Menu Wasit</div>
-        <button class="menuBtn" onclick="openMenu('menuCounter', this)">🔢 Counter Pertandingan</button>
-        <button class="menuBtn" onclick="openMenu('menuTimer', this)">⏱ Timer Pertandingan</button>
-        <button class="menuBtn" onclick="openMenu('menuAction', this)">🚨 Action</button>
+        <button class="menuBtn active" onclick="openMenu('menuCounter', this)">🔢<span>Score</span></button>
+        <button class="menuBtn" onclick="openMenu('menuTimer', this)">⏱<span>Timer</span></button>
+        <button class="menuBtn" onclick="openMenu('menuAction', this)">🚨<span>Action</span></button>
+        <button class="menuBtn" onclick="openMenu('menuMatchGroup', this)">🏆<span>Match</span></button>
+        <button class="menuBtn" onclick="openMenu('menuSettingGroup', this)">⚙<span>Admin</span></button>
       </div>
 
       <div class="menuContent">
-        <section id="menuSetting" class="menuSection active">
+        <section id="menuCounter" class="menuSection active">
           <div class="card">
-            <h2>Ganti Password Admin</h2>
-            <input id="newAdminPassword" placeholder="Password baru">
-            <button class="gray" onclick="changePassword()">Ganti Password</button>
-          </div>
-        </section>
-
-        <section id="menuDataMatch" class="menuSection">
-          <div class="card">
-            <h2>Setting Data Pertandingan</h2>
-            <input id="eventName" placeholder="Nama Event / Nama Pertandingan">
-            <select id="mode">
-              <option value="badminton">Badminton</option>
-              <option value="futsal">Futsal</option>
-              <option value="voli">Voli</option>
-            </select>
-            <select id="period">
-              <option>Babak 1</option>
-              <option>Babak 2</option>
-              <option>Set 1</option>
-              <option>Set 2</option>
-              <option>Set 3</option>
-              <option>Extra Time</option>
-              <option>Final</option>
-            </select>
-            <button onclick="setMatch()">Update Data Pertandingan</button>
-          </div>
-        </section>
-
-        <section id="menuTeam" class="menuSection">
-          <div class="card">
-            <h2>Nama Team</h2>
-            <div class="grid">
-              <input id="teamA" placeholder="Nama Team A">
-              <input id="teamB" placeholder="Nama Team B">
-            </div>
-            <button onclick="setNames()">Update Nama Team</button>
-          </div>
-        </section>
-
-        <section id="menuPlayers" class="menuSection">
-          <div class="card">
-            <h2>Nama Pemain Badminton</h2>
-            <div class="grid">
-              <div>
-                <div class="small">Team A</div>
-                <input id="playerA1" placeholder="Pemain A1">
-                <input id="playerA2" placeholder="Pemain A2 / kosong jika single">
-              </div>
-              <div>
-                <div class="small">Team B</div>
-                <input id="playerB1" placeholder="Pemain B1">
-                <input id="playerB2" placeholder="Pemain B2 / kosong jika single">
-              </div>
-            </div>
-            <button class="purple" onclick="setPlayers()">Update Nama Pemain</button>
-          </div>
-        </section>
-
-        <section id="menuVisual" class="menuSection">
-          <div class="card">
-            <h2>Warna & Logo Team</h2>
-            <div class="grid">
-              <div>
-                <div class="small">Team A</div>
-                <input id="colorA" type="color" value="#2563eb">
-                <input id="logoA" placeholder="URL Logo Team A">
-              </div>
-              <div>
-                <div class="small">Team B</div>
-                <input id="colorB" type="color" value="#dc2626">
-                <input id="logoB" placeholder="URL Logo Team B">
-              </div>
-            </div>
-            <button class="purple" onclick="setVisual()">Update Warna / Logo</button>
-          </div>
-        </section>
-
-        <section id="menuHistory" class="menuSection">
-          <div class="card">
-            <h2>History Pertandingan</h2>
-            <div class="grid">
-              <button class="green" onclick="saveHistory()">Simpan History Sekarang</button>
-              <button class="red" onclick="clearHistory()">Hapus Semua History</button>
-            </div>
-            <div class="small">History bisa diedit dan dihapus setelah login admin.</div>
-            <div id="history"></div>
-          </div>
-        </section>
-
-        <section id="menuCounter" class="menuSection">
-          <div class="card">
-            <h2>Counter Pertandingan</h2>
+            <h2 class="sectionTitle">Counter Pertandingan</h2>
             <div class="counterGrid">
-              <div class="teamCounter">
+              <div class="teamCounter teamABox">
                 <h2 id="titleA">TEAM A</h2>
                 <div class="bigScore" id="scoreA">0</div>
-                <div class="grid">
+                <div class="scoreBtns">
                   <button class="green" onclick="changeScore('a',1)">+1</button>
                   <button class="red" onclick="changeScore('a',-1)">-1</button>
                 </div>
               </div>
-              <div class="teamCounter">
+              <div class="teamCounter teamBBox">
                 <h2 id="titleB">TEAM B</h2>
                 <div class="bigScore" id="scoreB">0</div>
-                <div class="grid">
+                <div class="scoreBtns">
                   <button class="green" onclick="changeScore('b',1)">+1</button>
                   <button class="red" onclick="changeScore('b',-1)">-1</button>
                 </div>
@@ -272,21 +187,117 @@
             <div class="grid">
               <button class="green" onclick="timerStart()">▶ Start</button>
               <button class="yellow" onclick="timerPause()">⏸ Pause</button>
-              <button class="red" onclick="timerReset()">↺ Reset Timer</button>
-              <button class="purple" onclick="timerSet()">⏱ Set Menit</button>
+              <button class="red" onclick="timerReset()">↺ Reset</button>
+              <button class="purple" onclick="timerSet()">⏱ Set</button>
             </div>
           </div>
         </section>
 
         <section id="menuAction" class="menuSection">
           <div class="card">
-            <h2>Action</h2>
+            <h2>Action Wasit</h2>
             <div class="grid">
               <button class="red" onclick="resetScore()">Reset Score</button>
               <button class="yellow" onclick="sendBuzzer()">Buzzer</button>
               <button class="green" onclick="saveHistory()">Simpan History</button>
               <button class="purple" onclick="newMatch()">Match Baru</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="menuMatchGroup" class="menuSection">
+          <div class="subMenu">
+            <button class="subBtn active" onclick="openSubMenu('subData', this)">Data</button>
+            <button class="subBtn" onclick="openSubMenu('subTeam', this)">Team</button>
+            <button class="subBtn" onclick="openSubMenu('subPlayers', this)">Pemain</button>
+            <button class="subBtn" onclick="openSubMenu('subVisual', this)">Visual</button>
+          </div>
+
+          <div id="subData" class="subPanel active">
+            <div class="card">
+              <h2>Setting Data Pertandingan</h2>
+              <input id="eventName" placeholder="Nama Event / Pertandingan">
+              <select id="mode">
+                <option value="badminton">Badminton</option>
+                <option value="futsal">Futsal</option>
+                <option value="voli">Voli</option>
+              </select>
+              <select id="period">
+                <option>Babak 1</option>
+                <option>Babak 2</option>
+                <option>Set 1</option>
+                <option>Set 2</option>
+                <option>Set 3</option>
+                <option>Extra Time</option>
+                <option>Final</option>
+              </select>
+              <button onclick="setMatch()">Update Pertandingan</button>
+            </div>
+          </div>
+
+          <div id="subTeam" class="subPanel">
+            <div class="card">
+              <h2>Nama Team</h2>
+              <input id="teamA" placeholder="Nama Team A">
+              <input id="teamB" placeholder="Nama Team B">
+              <button onclick="setNames()">Update Team</button>
+            </div>
+          </div>
+
+          <div id="subPlayers" class="subPanel">
+            <div class="card">
+              <h2>Nama Pemain Badminton</h2>
+              <input id="playerA1" placeholder="Pemain A1">
+              <input id="playerA2" placeholder="Pemain A2 / kosong jika single">
+              <input id="playerB1" placeholder="Pemain B1">
+              <input id="playerB2" placeholder="Pemain B2 / kosong jika single">
+              <button class="purple" onclick="setPlayers()">Update Pemain</button>
+            </div>
+          </div>
+
+          <div id="subVisual" class="subPanel">
+            <div class="card">
+              <h2>Warna & Logo Team</h2>
+              <div class="grid">
+                <div>
+                  <div class="small">Team A</div>
+                  <input id="colorA" type="color" value="#2563eb">
+                  <input id="logoA" placeholder="URL Logo Team A">
+                </div>
+                <div>
+                  <div class="small">Team B</div>
+                  <input id="colorB" type="color" value="#dc2626">
+                  <input id="logoB" placeholder="URL Logo Team B">
+                </div>
+              </div>
+              <button class="purple" onclick="setVisual()">Update Visual</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="menuSettingGroup" class="menuSection">
+          <div class="subMenu">
+            <button class="subBtn active" onclick="openSubMenu('subPassword', this)">Password</button>
+            <button class="subBtn" onclick="openSubMenu('subHistory', this)">History</button>
+          </div>
+
+          <div id="subPassword" class="subPanel active">
+            <div class="card">
+              <h2>Ganti Password Admin</h2>
+              <input id="newAdminPassword" placeholder="Password baru">
+              <button class="gray" onclick="changePassword()">Ganti Password</button>
+            </div>
+          </div>
+
+          <div id="subHistory" class="subPanel">
+            <div class="card">
+              <h2>History Pertandingan</h2>
+              <div class="grid">
+                <button class="green" onclick="saveHistory()">Simpan Sekarang</button>
+                <button class="red" onclick="clearHistory()">Hapus Semua</button>
+              </div>
               <button class="red" onclick="resetAllData()">Reset Semua Data</button>
+              <div id="history"></div>
             </div>
           </div>
         </section>
@@ -391,6 +402,16 @@ window.openMenu = function(sectionId, btn){
   document.querySelectorAll(".menuBtn").forEach(el => el.classList.remove("active"));
   const sec = document.getElementById(sectionId);
   if(sec) sec.classList.add("active");
+  if(btn) btn.classList.add("active");
+}
+
+window.openSubMenu = function(panelId, btn){
+  const group = btn.closest(".menuSection");
+  if(!group) return;
+  group.querySelectorAll(".subPanel").forEach(el => el.classList.remove("active"));
+  group.querySelectorAll(".subBtn").forEach(el => el.classList.remove("active"));
+  const panel = document.getElementById(panelId);
+  if(panel) panel.classList.add("active");
   if(btn) btn.classList.add("active");
 }
 
