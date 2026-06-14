@@ -37,10 +37,14 @@
     .center{background:#020617;display:flex;align-items:center;justify-content:center;flex-direction:column;border-left:4px solid #334155;border-right:4px solid #334155}
     .timerDisplay{font-size:6vh;font-weight:900;background:#111827;border:3px solid #475569;border-radius:2vh;padding:2vh 2vw}
     .vs{font-size:5vh;font-weight:900;margin-top:3vh;color:#fbbf24}
-    .bottom{height:16vh;background:#020617;display:flex;align-items:center;justify-content:center;gap:2vw;border-top:4px solid #334155}
-    .pill{font-size:3vh;font-weight:800;background:#111827;border:2px solid #475569;border-radius:999px;padding:2vh 3vw;text-transform:uppercase}
-    .configBtn{position:fixed;top:10px;right:10px;z-index:30;background:#111827;color:#fff;border:1px solid #475569;border-radius:12px;padding:10px 14px;cursor:pointer;width:auto}
-    .voiceBtn{position:fixed;top:58px;right:10px;z-index:30;background:#16a34a;color:#fff;border:1px solid #86efac;border-radius:12px;padding:10px 14px;cursor:pointer;width:auto;font-weight:900}
+    .bottom{height:8vh;background:#020617;display:flex;align-items:center;justify-content:center;gap:1vw;border-top:2px solid #334155}
+    .pill{font-size:1.45vh;font-weight:800;background:#111827;border:1px solid #475569;border-radius:999px;padding:.8vh 1.2vw;text-transform:uppercase;color:#cbd5e1}
+    .iconBtn{z-index:30;color:#fff;border-radius:999px;width:34px;height:34px;padding:0;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px #0007}
+    .configBtn{position:fixed;top:10px;right:10px;background:#111827;border:1px solid #475569}
+    .voiceBtn{position:fixed;top:50px;right:10px;background:#16a34a;border:1px solid #86efac}
+    .fullscreenBtn{position:fixed;top:90px;right:10px;background:#2563eb;border:1px solid #93c5fd}
+    .isFullscreen .configBtn,.isFullscreen .voiceBtn,.isFullscreen .fullscreenBtn{opacity:.06;transition:.2s}
+    .isFullscreen .configBtn:hover,.isFullscreen .voiceBtn:hover,.isFullscreen .fullscreenBtn:hover{opacity:1}
     .buzzerFlash{animation:flash .18s linear 8}
     @keyframes flash{0%{filter:brightness(1)}50%{filter:brightness(2.2)}100%{filter:brightness(1)}}
     @media(max-width:700px){
@@ -206,8 +210,9 @@
 </div>
 
 <div id="displayPage" class="page hidden">
-  <button class="configBtn" onclick="showSetup()">Setup</button>
-  <button class="voiceBtn" onclick="enableVoice()">Voice ON</button>
+  <button class="configBtn iconBtn" onclick="showSetup()" title="Setup">⚙</button>
+  <button class="voiceBtn iconBtn" onclick="enableVoice()" title="Voice ON">🔊</button>
+  <button class="fullscreenBtn iconBtn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
   <div class="top">
     <div class="event" id="displayEventName">TURNAMEN SCOREBOARD</div>
     <div class="info"><span id="displayMode">BADMINTON</span> • <span id="displayPeriod">BABAK 1</span></div>
@@ -229,8 +234,8 @@
     </div>
   </div>
   <div class="bottom">
-    <div class="pill" id="displayStatus">ONLINE</div>
-    <div class="pill">FIREBASE SYNC</div>
+    <div class="pill" id="displayStatus">● ONLINE</div>
+    <div class="pill">☁ SYNC</div>
   </div>
 </div>
 
@@ -261,6 +266,16 @@ let app, db, currentState = {...DEFAULT_STATE};
 let adminOK = false;
 let lastBuzzer = 0;
 let audioCtx = null;
+const DEFAULT_FIREBASE_CONFIG = {
+  "apiKey": "AIzaSyDAr3YiTepfIWHrYR7cUZRdB252ZtXwlfg",
+  "authDomain": "board-56789.firebaseapp.com",
+  "databaseURL": "https://board-56789-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "board-56789",
+  "storageBucket": "board-56789.firebasestorage.app",
+  "messagingSenderId": "639842564471",
+  "appId": "1:639842564471:web:f33eaa166cdc230ac98972",
+  "measurementId": "G-V9B4GE1N0B"
+};
 let voiceEnabled = localStorage.getItem('scoreboard_voice_enabled') === '1';
 let prevScoreA = null;
 let prevScoreB = null;
@@ -271,10 +286,20 @@ const isDisplay = qs.has("display");
 
 function $(id){ return document.getElementById(id); }
 
+function setInputValue(id, value){
+  const el = $(id);
+  if(!el) return;
+  // Jangan overwrite input/select saat user sedang mengetik/memilih.
+  if(document.activeElement === el) return;
+  el.value = value ?? "";
+}
+
 function getConfig(){
   const raw = localStorage.getItem("firebase_config");
-  if(!raw) return null;
-  try { return JSON.parse(raw); } catch(e){ return null; }
+  if(raw){
+    try { return JSON.parse(raw); } catch(e){}
+  }
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 window.saveConfig = function(){
@@ -293,10 +318,15 @@ window.clearConfig = function(){
 }
 
 window.showSetup = function(){
+  if(isDisplay){
+    alert("Setup Firebase dilakukan dari HP Controller. Display TV cukup buka link ?display=1.");
+    return;
+  }
   $("setupPage").classList.remove("hidden");
   $("controlPage").classList.add("hidden");
   $("displayPage").classList.add("hidden");
-  const cfg = getConfig();
+  const raw = localStorage.getItem("firebase_config");
+  const cfg = raw ? JSON.parse(raw) : DEFAULT_FIREBASE_CONFIG;
   $("firebaseConfigInput").value = cfg ? JSON.stringify(cfg, null, 2) : "";
 }
 
@@ -311,7 +341,7 @@ function showMain(){
 
 async function init(){
   const cfg = getConfig();
-  if(!cfg){
+  if(!cfg && !isDisplay){
     window.showSetup();
     return;
   }
@@ -336,8 +366,15 @@ async function init(){
     });
 
   }catch(e){
-    alert("Gagal connect Firebase. Cek config dan databaseURL.");
-    window.showSetup();
+    if(isDisplay){
+      showMain();
+      const st = $("displayStatus");
+      if(st) st.innerText = "● OFF";
+      console.error(e);
+    }else{
+      alert("Gagal connect Firebase. Cek config dan databaseURL.");
+      window.showSetup();
+    }
   }
 }
 
@@ -363,15 +400,15 @@ function renderAll(){
   const t = formatTime(timerValue(s));
 
   if(!$("controlPage").classList.contains("hidden")){
-    $("eventName").value = s.event_name;
-    $("mode").value = s.mode;
-    $("period").value = s.period;
-    $("teamA").value = s.team_a;
-    $("teamB").value = s.team_b;
-    $("colorA").value = s.color_a;
-    $("colorB").value = s.color_b;
-    $("logoA").value = s.logo_a || "";
-    $("logoB").value = s.logo_b || "";
+    setInputValue("eventName", s.event_name);
+    setInputValue("mode", s.mode);
+    setInputValue("period", s.period);
+    setInputValue("teamA", s.team_a);
+    setInputValue("teamB", s.team_b);
+    setInputValue("colorA", s.color_a);
+    setInputValue("colorB", s.color_b);
+    setInputValue("logoA", s.logo_a || "");
+    setInputValue("logoB", s.logo_b || "");
     $("scoreA").innerText = s.score_a;
     $("scoreB").innerText = s.score_b;
     $("titleA").innerText = s.team_a;
@@ -527,7 +564,7 @@ window.adminLogin = function(){
 window.setMatch = function(){
   if(!requireAdmin()) return;
   update(ref(db, "scoreboard/state"), {
-    event_name:$("eventName").value || DEFAULT_STATE.event_name,
+    event_name:($("eventName").value || DEFAULT_STATE.event_name).trim(),
     mode:$("mode").value,
     period:$("period").value
   });
@@ -641,6 +678,29 @@ function renderHistory(obj){
     box.appendChild(div);
   });
 }
+
+
+window.toggleFullscreen = async function(){
+  try{
+    if(!document.fullscreenElement){
+      await document.documentElement.requestFullscreen();
+      document.body.classList.add("isFullscreen");
+    }else{
+      await document.exitFullscreen();
+      document.body.classList.remove("isFullscreen");
+    }
+  }catch(e){
+    alert("Fullscreen tidak didukung browser ini. Coba tekan F11 di keyboard atau buka dari browser Chrome.");
+  }
+}
+
+document.addEventListener("fullscreenchange", () => {
+  if(document.fullscreenElement){
+    document.body.classList.add("isFullscreen");
+  }else{
+    document.body.classList.remove("isFullscreen");
+  }
+});
 
 setInterval(renderAll, 500);
 init();
