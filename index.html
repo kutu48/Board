@@ -40,6 +40,7 @@
     .bottom{height:16vh;background:#020617;display:flex;align-items:center;justify-content:center;gap:2vw;border-top:4px solid #334155}
     .pill{font-size:3vh;font-weight:800;background:#111827;border:2px solid #475569;border-radius:999px;padding:2vh 3vw;text-transform:uppercase}
     .configBtn{position:fixed;top:10px;right:10px;z-index:30;background:#111827;color:#fff;border:1px solid #475569;border-radius:12px;padding:10px 14px;cursor:pointer;width:auto}
+    .voiceBtn{position:fixed;top:58px;right:10px;z-index:30;background:#16a34a;color:#fff;border:1px solid #86efac;border-radius:12px;padding:10px 14px;cursor:pointer;width:auto;font-weight:900}
     .buzzerFlash{animation:flash .18s linear 8}
     @keyframes flash{0%{filter:brightness(1)}50%{filter:brightness(2.2)}100%{filter:brightness(1)}}
     @media(max-width:700px){
@@ -206,6 +207,7 @@
 
 <div id="displayPage" class="page hidden">
   <button class="configBtn" onclick="showSetup()">Setup</button>
+  <button class="voiceBtn" onclick="enableVoice()">Voice ON</button>
   <div class="top">
     <div class="event" id="displayEventName">TURNAMEN SCOREBOARD</div>
     <div class="info"><span id="displayMode">BADMINTON</span> • <span id="displayPeriod">BABAK 1</span></div>
@@ -259,6 +261,9 @@ let app, db, currentState = {...DEFAULT_STATE};
 let adminOK = false;
 let lastBuzzer = 0;
 let audioCtx = null;
+let voiceEnabled = localStorage.getItem('scoreboard_voice_enabled') === '1';
+let prevScoreA = null;
+let prevScoreB = null;
 
 const qs = new URLSearchParams(location.search);
 const isControl = qs.has("control");
@@ -383,6 +388,7 @@ function renderAll(){
     $("displayScoreA").innerText = s.score_a;
     $("displayScoreB").innerText = s.score_b;
     $("displayTimer").innerText = t;
+    announceScoreIfChanged(s);
     $("panelA").style.background = `linear-gradient(135deg, ${s.color_a}, #020617)`;
     $("panelB").style.background = `linear-gradient(135deg, ${s.color_b}, #020617)`;
 
@@ -394,6 +400,93 @@ function renderAll(){
       playBuzzer();
     }
   }
+}
+
+
+window.enableVoice = function(){
+  voiceEnabled = true;
+  localStorage.setItem("scoreboard_voice_enabled", "1");
+  speakText("Suara scoreboard aktif");
+}
+
+function numberId(n, kosong=false){
+  n = Number(n || 0);
+  if(n === 0) return kosong ? "kosong" : "nol";
+  const dasar = ["nol","satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan","sepuluh","sebelas"];
+  if(n < 12) return dasar[n];
+  if(n < 20) return dasar[n-10] + " belas";
+  if(n < 100){
+    const puluh = Math.floor(n/10);
+    const sisa = n % 10;
+    return dasar[puluh] + " puluh" + (sisa ? " " + dasar[sisa] : "");
+  }
+  return String(n);
+}
+
+function isMatchPoint(s){
+  const a = Number(s.score_a || 0);
+  const b = Number(s.score_b || 0);
+  const mode = String(s.mode || "").toLowerCase();
+
+  if(mode === "futsal") return null;
+
+  const leadTeam = a > b ? "a" : (b > a ? "b" : "");
+  if(!leadTeam) return null;
+
+  const lead = Math.max(a,b);
+  const behind = Math.min(a,b);
+
+  // Badminton/voli sederhana:
+  // 20-19, 21-20, 22-21 dianggap match/set point.
+  // 29-29 belum ada leader; 30 adalah batas umum badminton.
+  if(lead >= 20 && lead - behind >= 1){
+    return leadTeam;
+  }
+  return null;
+}
+
+function speakText(text){
+  if(!voiceEnabled) return;
+  if(!("speechSynthesis" in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "id-ID";
+    u.rate = 0.95;
+    u.pitch = 1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function announceScoreIfChanged(s){
+  if($("displayPage").classList.contains("hidden")) return;
+
+  const a = Number(s.score_a || 0);
+  const b = Number(s.score_b || 0);
+
+  if(prevScoreA === null || prevScoreB === null){
+    prevScoreA = a;
+    prevScoreB = b;
+    return;
+  }
+
+  if(a === prevScoreA && b === prevScoreB) return;
+
+  prevScoreA = a;
+  prevScoreB = b;
+
+  const mp = isMatchPoint(s);
+  let text = "";
+
+  if(mp === "a"){
+    text = `Match point ${s.team_a}. ${numberId(a, true)} ${numberId(b, true)}`;
+  }else if(mp === "b"){
+    text = `Match point ${s.team_b}. ${numberId(a, true)} ${numberId(b, true)}`;
+  }else{
+    text = `${numberId(a, true)} ${numberId(b, true)}`;
+  }
+
+  speakText(text);
 }
 
 function playBuzzer(){
