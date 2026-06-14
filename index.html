@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Digital Scoreboard Online</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#020617;color:white}
+    .hidden{display:none!important}
+    .page{min-height:100vh}
+    .setup{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+    .box{width:min(760px,96vw);background:#111827;border:1px solid #334155;border-radius:24px;padding:22px;box-shadow:0 20px 70px #0009}
+    h1,h2{margin-top:0}
+    p{color:#cbd5e1;line-height:1.45}
+    textarea,input,select,button{width:100%;padding:13px;border-radius:13px;border:0;font-size:16px;margin:6px 0}
+    textarea,input,select{background:#020617;color:white;border:1px solid #475569}
+    textarea{min-height:150px;font-family:Consolas,monospace;font-size:13px}
+    button{background:#2563eb;color:white;font-weight:900;cursor:pointer}
+    .green{background:#16a34a}.red{background:#dc2626}.yellow{background:#f59e0b;color:#111}.purple{background:#7c3aed}.gray{background:#475569}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .card{background:#1e293b;border:1px solid #334155;border-radius:18px;padding:16px;margin:12px}
+    header{position:sticky;top:0;z-index:8;background:#020617;border-bottom:1px solid #334155;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    header h1{font-size:20px;margin:0}
+    a{color:#93c5fd;text-decoration:none}
+    .small{font-size:13px;color:#94a3b8}
+    .scorebox{text-align:center;font-size:44px;font-weight:900;background:#020617;border-radius:16px;padding:14px;margin:8px 0}
+    .historyItem{background:#0f172a;border:1px solid #334155;padding:10px;border-radius:12px;margin:8px 0;font-size:14px}
+    .top{height:14vh;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#020617;border-bottom:4px solid #334155}
+    .event{font-size:4.5vh;font-weight:900;letter-spacing:.08em;text-align:center}
+    .info{font-size:2.5vh;color:#cbd5e1;margin-top:.5vh;text-transform:uppercase}
+    .board{height:70vh;display:grid;grid-template-columns:1fr 20vw 1fr}
+    .team{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2vh;position:relative}
+    .logo{width:15vh;height:15vh;object-fit:contain;margin-bottom:2vh;filter:drop-shadow(0 10px 20px #0008)}
+    .name{font-size:6vh;font-weight:900;text-align:center;max-width:100%;text-transform:uppercase;line-height:1.05}
+    .score{font-size:28vh;font-weight:900;line-height:.9;margin-top:3vh;text-shadow:0 12px 30px #0009}
+    .center{background:#020617;display:flex;align-items:center;justify-content:center;flex-direction:column;border-left:4px solid #334155;border-right:4px solid #334155}
+    .timerDisplay{font-size:6vh;font-weight:900;background:#111827;border:3px solid #475569;border-radius:2vh;padding:2vh 2vw}
+    .vs{font-size:5vh;font-weight:900;margin-top:3vh;color:#fbbf24}
+    .bottom{height:16vh;background:#020617;display:flex;align-items:center;justify-content:center;gap:2vw;border-top:4px solid #334155}
+    .pill{font-size:3vh;font-weight:800;background:#111827;border:2px solid #475569;border-radius:999px;padding:2vh 3vw;text-transform:uppercase}
+    .configBtn{position:fixed;top:10px;right:10px;z-index:30;background:#111827;color:#fff;border:1px solid #475569;border-radius:12px;padding:10px 14px;cursor:pointer;width:auto}
+    .buzzerFlash{animation:flash .18s linear 8}
+    @keyframes flash{0%{filter:brightness(1)}50%{filter:brightness(2.2)}100%{filter:brightness(1)}}
+    @media(max-width:700px){
+      .grid{grid-template-columns:1fr}
+      header{align-items:flex-start;flex-direction:column}
+      .board{grid-template-columns:1fr;grid-template-rows:1fr 22vh 1fr;height:auto;min-height:86vh}
+      .score{font-size:18vh}
+      .name{font-size:5vh}
+      .center{border-left:0;border-right:0;border-top:4px solid #334155;border-bottom:4px solid #334155}
+      .bottom{height:auto;min-height:10vh;flex-wrap:wrap;padding:12px}
+      .pill{font-size:2.4vh}
+    }
+  </style>
+</head>
+<body>
+
+<div id="setupPage" class="setup">
+  <div class="box">
+    <h1>Setup Scoreboard Online</h1>
+    <p>
+      Tempel konfigurasi Firebase Web App di bawah ini. Setelah connect,
+      halaman ini bisa jadi <b>display TV</b> atau <b>controller HP</b> tanpa server lokal.
+    </p>
+    <textarea id="firebaseConfigInput" placeholder='Contoh:
+{
+  "apiKey": "xxxxx",
+  "authDomain": "xxxxx.firebaseapp.com",
+  "databaseURL": "https://xxxxx-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "xxxxx",
+  "storageBucket": "xxxxx.appspot.com",
+  "messagingSenderId": "xxxxx",
+  "appId": "xxxxx"
+}'></textarea>
+    <div class="grid">
+      <button class="green" onclick="saveConfig()">Simpan Firebase Config</button>
+      <button class="gray" onclick="clearConfig()">Reset Config</button>
+    </div>
+    <p class="small">
+      Setelah config disimpan, gunakan URL:
+      <br><b>?display=1</b> untuk TV Display
+      <br><b>?control=1</b> untuk HP Controller
+    </p>
+  </div>
+</div>
+
+<div id="controlPage" class="page hidden">
+  <header>
+    <div>
+      <h1>Control Scoreboard Online</h1>
+      <div class="small">Tanpa server lokal, data sync via Firebase</div>
+    </div>
+    <div>
+      <a href="?display=1" target="_blank">Buka Display</a> |
+      <a href="javascript:showSetup()">Setup</a>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>Password Admin</h2>
+    <input id="adminPassword" type="password" placeholder="Masukkan password admin">
+    <button class="green" onclick="adminLogin()">LOGIN ADMIN</button>
+    <div class="small">Default password: admin123. Bisa diganti dari field bawah.</div>
+  </div>
+
+  <div id="adminPanel" class="hidden">
+    <div class="card">
+      <h2>Data Pertandingan</h2>
+      <input id="eventName" placeholder="Nama Event">
+      <select id="mode">
+        <option value="badminton">Badminton</option>
+        <option value="futsal">Futsal</option>
+        <option value="voli">Voli</option>
+      </select>
+      <select id="period">
+        <option>Babak 1</option>
+        <option>Babak 2</option>
+        <option>Set 1</option>
+        <option>Set 2</option>
+        <option>Set 3</option>
+        <option>Extra Time</option>
+        <option>Final</option>
+      </select>
+      <button onclick="setMatch()">Update Pertandingan</button>
+    </div>
+
+    <div class="card">
+      <h2>Nama Team</h2>
+      <div class="grid">
+        <input id="teamA" placeholder="Nama Team A">
+        <input id="teamB" placeholder="Nama Team B">
+      </div>
+      <button onclick="setNames()">Update Nama Team</button>
+    </div>
+
+    <div class="card">
+      <h2>Warna & Logo Team</h2>
+      <div class="grid">
+        <div>
+          <input id="colorA" type="color" value="#2563eb">
+          <input id="logoA" placeholder="URL Logo Team A, boleh kosong">
+        </div>
+        <div>
+          <input id="colorB" type="color" value="#dc2626">
+          <input id="logoB" placeholder="URL Logo Team B, boleh kosong">
+        </div>
+      </div>
+      <button class="purple" onclick="setVisual()">Update Warna / Logo</button>
+      <div class="small">Tanpa server lokal, logo pakai URL online. Contoh: upload logo ke GitHub repo lalu salin raw/link gambarnya.</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2 id="titleA">TEAM A</h2>
+        <div class="scorebox" id="scoreA">0</div>
+        <div class="grid">
+          <button class="green" onclick="changeScore('a',1)">+1</button>
+          <button class="red" onclick="changeScore('a',-1)">-1</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 id="titleB">TEAM B</h2>
+        <div class="scorebox" id="scoreB">0</div>
+        <div class="grid">
+          <button class="green" onclick="changeScore('b',1)">+1</button>
+          <button class="red" onclick="changeScore('b',-1)">-1</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Timer Pertandingan</h2>
+      <div class="scorebox" id="timerControl">00:00</div>
+      <input id="timerMinutes" type="number" value="10" min="0" placeholder="Menit">
+      <div class="grid">
+        <button class="green" onclick="timerStart()">Start</button>
+        <button class="yellow" onclick="timerPause()">Pause</button>
+        <button class="red" onclick="timerReset()">Reset Timer</button>
+        <button class="purple" onclick="timerSet()">Set Menit</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Action</h2>
+      <div class="grid">
+        <button class="red" onclick="resetScore()">Reset Score</button>
+        <button class="yellow" onclick="sendBuzzer()">Buzzer</button>
+        <button class="green" onclick="saveHistory()">Simpan History</button>
+        <button class="purple" onclick="newMatch()">Match Baru</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Ganti Password Admin</h2>
+      <input id="newAdminPassword" placeholder="Password baru">
+      <button class="gray" onclick="changePassword()">Ganti Password</button>
+    </div>
+
+    <div class="card">
+      <h2>History Pertandingan</h2>
+      <div id="history"></div>
+    </div>
+  </div>
+</div>
+
+<div id="displayPage" class="page hidden">
+  <button class="configBtn" onclick="showSetup()">Setup</button>
+  <div class="top">
+    <div class="event" id="displayEventName">TURNAMEN SCOREBOARD</div>
+    <div class="info"><span id="displayMode">BADMINTON</span> • <span id="displayPeriod">BABAK 1</span></div>
+  </div>
+  <div class="board">
+    <div class="team" id="panelA">
+      <img class="logo" id="displayLogoA" style="display:none">
+      <div class="name" id="displayTeamA">TEAM A</div>
+      <div class="score" id="displayScoreA">0</div>
+    </div>
+    <div class="center">
+      <div class="timerDisplay" id="displayTimer">00:00</div>
+      <div class="vs">VS</div>
+    </div>
+    <div class="team" id="panelB">
+      <img class="logo" id="displayLogoB" style="display:none">
+      <div class="name" id="displayTeamB">TEAM B</div>
+      <div class="score" id="displayScoreB">0</div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="pill" id="displayStatus">ONLINE</div>
+    <div class="pill">FIREBASE SYNC</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getDatabase, ref, onValue, set, update, get, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+const DEFAULT_STATE = {
+  event_name:"TURNAMEN SCOREBOARD",
+  mode:"badminton",
+  period:"Babak 1",
+  team_a:"TEAM A",
+  team_b:"TEAM B",
+  score_a:0,
+  score_b:0,
+  color_a:"#2563eb",
+  color_b:"#dc2626",
+  logo_a:"",
+  logo_b:"",
+  timer_seconds:0,
+  timer_running:false,
+  timer_started_at:0,
+  buzzer_id:0,
+  admin_password:"admin123"
+};
+
+let app, db, currentState = {...DEFAULT_STATE};
+let adminOK = false;
+let lastBuzzer = 0;
+let audioCtx = null;
+
+const qs = new URLSearchParams(location.search);
+const isControl = qs.has("control");
+const isDisplay = qs.has("display");
+
+function $(id){ return document.getElementById(id); }
+
+function getConfig(){
+  const raw = localStorage.getItem("firebase_config");
+  if(!raw) return null;
+  try { return JSON.parse(raw); } catch(e){ return null; }
+}
+
+window.saveConfig = function(){
+  try{
+    const cfg = JSON.parse($("firebaseConfigInput").value);
+    localStorage.setItem("firebase_config", JSON.stringify(cfg));
+    location.href = isDisplay ? "?display=1" : "?control=1";
+  }catch(e){
+    alert("Config Firebase belum valid JSON");
+  }
+}
+
+window.clearConfig = function(){
+  localStorage.removeItem("firebase_config");
+  location.reload();
+}
+
+window.showSetup = function(){
+  $("setupPage").classList.remove("hidden");
+  $("controlPage").classList.add("hidden");
+  $("displayPage").classList.add("hidden");
+  const cfg = getConfig();
+  $("firebaseConfigInput").value = cfg ? JSON.stringify(cfg, null, 2) : "";
+}
+
+function showMain(){
+  $("setupPage").classList.add("hidden");
+  if(isDisplay){
+    $("displayPage").classList.remove("hidden");
+  }else{
+    $("controlPage").classList.remove("hidden");
+  }
+}
+
+async function init(){
+  const cfg = getConfig();
+  if(!cfg){
+    window.showSetup();
+    return;
+  }
+
+  try{
+    app = initializeApp(cfg);
+    db = getDatabase(app);
+    showMain();
+
+    const stateSnap = await get(ref(db, "scoreboard/state"));
+    if(!stateSnap.exists()){
+      await set(ref(db, "scoreboard/state"), DEFAULT_STATE);
+    }
+
+    onValue(ref(db, "scoreboard/state"), (snap) => {
+      currentState = {...DEFAULT_STATE, ...(snap.val() || {})};
+      renderAll();
+    });
+
+    onValue(ref(db, "scoreboard/history"), (snap) => {
+      renderHistory(snap.val() || {});
+    });
+
+  }catch(e){
+    alert("Gagal connect Firebase. Cek config dan databaseURL.");
+    window.showSetup();
+  }
+}
+
+function nowSec(){ return Math.floor(Date.now()/1000); }
+
+function timerValue(s){
+  let seconds = Number(s.timer_seconds || 0);
+  if(s.timer_running && s.timer_started_at){
+    seconds += nowSec() - Number(s.timer_started_at || nowSec());
+  }
+  return Math.max(0, seconds);
+}
+
+function formatTime(sec){
+  sec = Math.max(0, Number(sec || 0));
+  const m = Math.floor(sec / 60).toString().padStart(2,"0");
+  const s = Math.floor(sec % 60).toString().padStart(2,"0");
+  return `${m}:${s}`;
+}
+
+function renderAll(){
+  const s = currentState;
+  const t = formatTime(timerValue(s));
+
+  if(!$("controlPage").classList.contains("hidden")){
+    $("eventName").value = s.event_name;
+    $("mode").value = s.mode;
+    $("period").value = s.period;
+    $("teamA").value = s.team_a;
+    $("teamB").value = s.team_b;
+    $("colorA").value = s.color_a;
+    $("colorB").value = s.color_b;
+    $("logoA").value = s.logo_a || "";
+    $("logoB").value = s.logo_b || "";
+    $("scoreA").innerText = s.score_a;
+    $("scoreB").innerText = s.score_b;
+    $("titleA").innerText = s.team_a;
+    $("titleB").innerText = s.team_b;
+    $("timerControl").innerText = t;
+  }
+
+  if(!$("displayPage").classList.contains("hidden")){
+    $("displayEventName").innerText = s.event_name;
+    $("displayMode").innerText = s.mode;
+    $("displayPeriod").innerText = s.period;
+    $("displayTeamA").innerText = s.team_a;
+    $("displayTeamB").innerText = s.team_b;
+    $("displayScoreA").innerText = s.score_a;
+    $("displayScoreB").innerText = s.score_b;
+    $("displayTimer").innerText = t;
+    $("panelA").style.background = `linear-gradient(135deg, ${s.color_a}, #020617)`;
+    $("panelB").style.background = `linear-gradient(135deg, ${s.color_b}, #020617)`;
+
+    if(s.logo_a){ $("displayLogoA").src = s.logo_a; $("displayLogoA").style.display = "block"; } else {$("displayLogoA").style.display = "none";}
+    if(s.logo_b){ $("displayLogoB").src = s.logo_b; $("displayLogoB").style.display = "block"; } else {$("displayLogoB").style.display = "none";}
+
+    if(Number(s.buzzer_id || 0) > lastBuzzer){
+      lastBuzzer = Number(s.buzzer_id || 0);
+      playBuzzer();
+    }
+  }
+}
+
+function playBuzzer(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = 680;
+    gain.gain.value = 0.12;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    setTimeout(()=>osc.stop(), 900);
+    document.body.classList.add("buzzerFlash");
+    setTimeout(()=>document.body.classList.remove("buzzerFlash"), 1600);
+  }catch(e){}
+}
+
+function requireAdmin(){
+  if(!adminOK){
+    alert("Login admin dulu bro");
+    return false;
+  }
+  return true;
+}
+
+window.adminLogin = function(){
+  const pass = $("adminPassword").value;
+  if(pass === currentState.admin_password){
+    adminOK = true;
+    $("adminPanel").classList.remove("hidden");
+  }else{
+    alert("Password salah");
+  }
+}
+
+window.setMatch = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    event_name:$("eventName").value || DEFAULT_STATE.event_name,
+    mode:$("mode").value,
+    period:$("period").value
+  });
+}
+
+window.setNames = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    team_a:$("teamA").value || "TEAM A",
+    team_b:$("teamB").value || "TEAM B"
+  });
+}
+
+window.setVisual = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    color_a:$("colorA").value,
+    color_b:$("colorB").value,
+    logo_a:$("logoA").value.trim(),
+    logo_b:$("logoB").value.trim()
+  });
+}
+
+window.changeScore = function(team, delta){
+  if(!requireAdmin()) return;
+  const key = team === "a" ? "score_a" : "score_b";
+  const val = Math.max(0, Number(currentState[key] || 0) + delta);
+  update(ref(db, "scoreboard/state"), {[key]:val});
+}
+
+window.resetScore = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {score_a:0, score_b:0});
+}
+
+window.timerSet = function(){
+  if(!requireAdmin()) return;
+  const minutes = Number($("timerMinutes").value || 0);
+  update(ref(db, "scoreboard/state"), {
+    timer_seconds: minutes * 60,
+    timer_running:false,
+    timer_started_at:0
+  });
+}
+
+window.timerStart = function(){
+  if(!requireAdmin()) return;
+  if(currentState.timer_running) return;
+  update(ref(db, "scoreboard/state"), {
+    timer_running:true,
+    timer_started_at:nowSec()
+  });
+}
+
+window.timerPause = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    timer_seconds:timerValue(currentState),
+    timer_running:false,
+    timer_started_at:0
+  });
+}
+
+window.timerReset = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    timer_seconds:0,
+    timer_running:false,
+    timer_started_at:0
+  });
+}
+
+window.sendBuzzer = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    buzzer_id:Date.now()
+  });
+}
+
+window.saveHistory = async function(){
+  if(!requireAdmin()) return;
+  const s = {...currentState, timer_seconds:timerValue(currentState), saved_at:new Date().toLocaleString("id-ID")};
+  await push(ref(db, "scoreboard/history"), s);
+}
+
+window.newMatch = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Simpan history dan mulai match baru?")) return;
+  await window.saveHistory();
+  await set(ref(db, "scoreboard/state"), {...DEFAULT_STATE, admin_password:currentState.admin_password});
+}
+
+window.changePassword = function(){
+  if(!requireAdmin()) return;
+  const pass = $("newAdminPassword").value.trim();
+  if(pass.length < 4) return alert("Password minimal 4 karakter");
+  update(ref(db, "scoreboard/state"), {admin_password:pass});
+  $("newAdminPassword").value = "";
+  alert("Password admin sudah diganti");
+}
+
+function renderHistory(obj){
+  const box = $("history");
+  if(!box) return;
+  const arr = Object.values(obj || {}).sort((a,b)=>(b.buzzer_id||0)-(a.buzzer_id||0)).slice(0,20);
+  box.innerHTML = "";
+  arr.forEach(h=>{
+    const div = document.createElement("div");
+    div.className = "historyItem";
+    div.innerHTML = `<b>${h.saved_at || "-"}</b><br>${h.event_name} - ${h.mode} - ${h.period}<br>${h.team_a} <b>${h.score_a}</b> vs <b>${h.score_b}</b> ${h.team_b}`;
+    box.appendChild(div);
+  });
+}
+
+setInterval(renderAll, 500);
+init();
+</script>
+</body>
+</html>
