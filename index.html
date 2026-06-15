@@ -48,6 +48,18 @@
     .matchVs{font-weight:900;color:#fbbf24}
     .winnerBadge{display:inline-block;background:#16a34a;color:white;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;margin-top:6px}
     .warningBadge{display:inline-block;background:#f59e0b;color:#111;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;margin:6px 0}
+    .bracketModeBox{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+    .bracketChart{display:flex;gap:18px;overflow-x:auto;padding:12px 4px}
+    .bracketRound{min-width:260px;display:flex;flex-direction:column;gap:14px}
+    .bracketRound h3{margin:0;color:#fbbf24;font-size:16px}
+    .bracketChartMatch{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;position:relative}
+    .bracketChartMatch.active{border-color:#93c5fd;box-shadow:0 0 0 2px #2563eb55}
+    .bracketLine{height:2px;background:#475569;margin:8px 0}
+    .bracketSlot{background:#020617;border:1px solid #334155;border-radius:10px;padding:8px;margin:5px 0;font-size:12px}
+    .bracketSlot.win{border-color:#22c55e;background:#052e16;color:#bbf7d0;font-weight:900}
+    .bracketSlot.bye{opacity:.65}
+    .championBox{background:linear-gradient(135deg,#f59e0b,#78350f);border:1px solid #fbbf24;border-radius:16px;padding:14px;margin:10px 0;text-align:center;font-weight:900;color:#fff}
+
     .subMenu{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px}
     .subBtn{background:#111827;border:1px solid #334155;color:#e2e8f0;border-radius:14px;padding:12px;font-weight:900}
     .subBtn.active{background:#2563eb;border-color:#93c5fd;color:#fff}
@@ -308,9 +320,14 @@
                 <input id="tourColor" type="color" value="#2563eb">
                 <input id="tourLogo" placeholder="URL Logo, boleh kosong">
               </div>
+              <select id="tournamentViewMode" onchange="setTournamentViewMode()">
+                <option value="list">Mode List Match</option>
+                <option value="knockout">Mode Knockout Bracket / Chart</option>
+              </select>
               <div class="grid">
                 <button class="green" onclick="addTournamentEntry()">Tambah Peserta</button>
                 <button class="purple" onclick="generateTournamentBracket()">Generate Bagan Acak</button>
+                <button class="green" onclick="generateNextRound()">Generate Ronde Berikutnya</button>
                 <button class="red" onclick="clearTournament()">Hapus Bagan</button>
                 <button class="gray" onclick="clearTournamentEntries()">Hapus Peserta</button>
               </div>
@@ -421,6 +438,7 @@ const DEFAULT_STATE = {
   tournament_matches:[],
   active_match_id:"",
   tournament_note:"",
+  tournament_view_mode:"list",
   color_a:"#2563eb",
   color_b:"#dc2626",
   logo_a:"",
@@ -1113,6 +1131,7 @@ window.resetAllData = async function(){
 }
 
 
+
 function entryDisplayName(e){
   if(!e) return "BYE";
   const players = [e.player1, e.player2].filter(Boolean).join(" / ");
@@ -1145,7 +1164,7 @@ function makeBestRandomOrder(entries){
   let best = shuffleArray(entries);
   let bestConflict = countFirstRoundConflicts(best);
 
-  for(let i=0;i<500;i++){
+  for(let i=0;i<700;i++){
     const s = shuffleArray(entries);
     const c = countFirstRoundConflicts(s);
     if(c < bestConflict){
@@ -1155,6 +1174,41 @@ function makeBestRandomOrder(entries){
     }
   }
   return {order:best, conflict:bestConflict};
+}
+
+function getRoundName(round){
+  round = Number(round || 1);
+  if(round === 1) return "Ronde 1";
+  if(round === 2) return "Ronde 2";
+  if(round === 3) return "Semi Final / Ronde 3";
+  if(round >= 4) return `Ronde ${round}`;
+  return `Ronde ${round}`;
+}
+
+function getLatestRound(matches){
+  const arr = Array.isArray(matches) ? matches : [];
+  if(arr.length === 0) return 0;
+  return Math.max(...arr.map(m => Number(m.round || 1)));
+}
+
+function getRoundMatches(round){
+  const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+  return matches.filter(m => Number(m.round || 1) === Number(round));
+}
+
+function getMatchWinnerEntry(m){
+  if(!m || !m.winner) return null;
+  const winnerText = String(m.winner || "").trim();
+  if(m.side_a && winnerText === String(m.side_a.team || "").trim()) return m.side_a;
+  if(m.side_b && winnerText === String(m.side_b.team || "").trim()) return m.side_b;
+
+  // fallback cari dari nama pemain/display
+  const aText = entryDisplayName(m.side_a);
+  const bText = entryDisplayName(m.side_b);
+  if(winnerText === aText) return m.side_a;
+  if(winnerText === bText) return m.side_b;
+
+  return null;
 }
 
 window.addTournamentEntry = async function(){
@@ -1217,6 +1271,9 @@ window.generateTournamentBracket = async function(){
   if(!requireAdmin()) return;
   const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
   if(entries.length < 2) return alert("Minimal 2 peserta untuk membuat bagan");
+  if(currentState.tournament_matches && currentState.tournament_matches.length){
+    if(!confirm("Bagan lama akan diganti dari awal. Lanjut?")) return;
+  }
 
   const result = makeBestRandomOrder(entries);
   const order = result.order;
@@ -1233,8 +1290,9 @@ window.generateTournamentBracket = async function(){
       side_b:sideB,
       score_a:0,
       score_b:0,
-      winner:"",
-      status:sideB ? "scheduled" : "bye"
+      winner:sideB ? "" : (sideA ? sideA.team : ""),
+      status:sideB ? "scheduled" : "bye",
+      finished_at:sideB ? "" : new Date().toLocaleString("id-ID")
     });
   }
 
@@ -1250,12 +1308,73 @@ window.generateTournamentBracket = async function(){
   alert(note);
 }
 
+window.generateNextRound = async function(){
+  if(!requireAdmin()) return;
+
+  const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
+  if(matches.length === 0) return alert("Belum ada bagan. Generate ronde 1 dulu.");
+
+  const latestRound = getLatestRound(matches);
+  const roundMatches = matches.filter(m => Number(m.round || 1) === latestRound);
+
+  const unfinished = roundMatches.filter(m => !m.winner);
+  if(unfinished.length > 0){
+    return alert(`Ronde ${latestRound} belum selesai. Masih ada ${unfinished.length} match belum punya winner.`);
+  }
+
+  const winners = roundMatches.map(getMatchWinnerEntry).filter(Boolean);
+
+  if(winners.length <= 1){
+    const champion = winners[0] ? entryDisplayName(winners[0]) : "-";
+    await update(ref(db, "scoreboard/state"), {
+      tournament_note:`Turnamen selesai. Juara: ${champion}`
+    });
+    alert(`Turnamen selesai. Juara: ${champion}`);
+    return;
+  }
+
+  const nextRound = latestRound + 1;
+  const result = makeBestRandomOrder(winners);
+  const order = result.order;
+  const newMatches = [];
+
+  for(let i=0;i<order.length;i+=2){
+    const sideA = order[i] || null;
+    const sideB = order[i+1] || null;
+    newMatches.push({
+      id:"M" + Date.now() + "_R" + nextRound + "_" + i,
+      round:nextRound,
+      no:(i/2)+1,
+      side_a:sideA,
+      side_b:sideB,
+      score_a:0,
+      score_b:0,
+      winner:sideB ? "" : (sideA ? sideA.team : ""),
+      status:sideB ? "scheduled" : "bye",
+      finished_at:sideB ? "" : new Date().toLocaleString("id-ID")
+    });
+  }
+
+  const note = winners.length === 2
+    ? `Final berhasil dibuat dari ${winners.length} pemenang.`
+    : `Ronde ${nextRound} berhasil dibuat dari ${winners.length} pemenang.`;
+
+  await update(ref(db, "scoreboard/state"), {
+    tournament_matches:[...matches, ...newMatches],
+    tournament_note:note,
+    active_match_id:""
+  });
+
+  alert(note);
+}
+
 window.clearTournament = async function(){
   if(!requireAdmin()) return;
   if(!confirm("Hapus bagan pertandingan? Daftar peserta tetap disimpan.")) return;
   await update(ref(db, "scoreboard/state"), {
     tournament_matches:[],
     tournament_note:"",
+  tournament_view_mode:"list",
     active_match_id:""
   });
 }
@@ -1267,6 +1386,7 @@ window.clearTournamentEntries = async function(){
     tournament_entries:[],
     tournament_matches:[],
     tournament_note:"",
+  tournament_view_mode:"list",
     active_match_id:""
   });
 }
@@ -1311,6 +1431,28 @@ window.syncBracketMatch = async function(matchId){
   alert("Match sudah disinkronkan ke scoreboard");
 }
 
+window.setManualBracketWinner = async function(matchId, side){
+  if(!requireAdmin()) return;
+  const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
+  const idx = matches.findIndex(m => m.id === matchId);
+  if(idx < 0) return;
+
+  const m = matches[idx];
+  const winnerEntry = side === "a" ? m.side_a : m.side_b;
+  if(!winnerEntry) return alert("Peserta tidak ada");
+
+  if(!confirm(`Set winner manual: ${entryDisplayName(winnerEntry)} ?`)) return;
+
+  matches[idx] = {
+    ...m,
+    winner:winnerEntry.team || entryDisplayName(winnerEntry),
+    status:"finished",
+    finished_at:new Date().toLocaleString("id-ID")
+  };
+
+  await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
+}
+
 window.updateActiveBracketWinner = async function(){
   if(!requireAdmin()) return;
 
@@ -1334,13 +1476,84 @@ window.updateActiveBracketWinner = async function(){
   };
 
   await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
-  alert("Winner berhasil diupdate ke bagan");
+  alert("Winner berhasil diupdate ke bagan. Jika semua match ronde ini selesai, klik Generate Ronde Berikutnya.");
+}
+
+
+window.setTournamentViewMode = async function(){
+  if(!requireAdmin()) return;
+  const mode = $("tournamentViewMode") ? $("tournamentViewMode").value : "list";
+  await update(ref(db, "scoreboard/state"), {tournament_view_mode:mode});
+}
+
+function getTournamentChampion(matches){
+  const arr = Array.isArray(matches) ? matches : [];
+  if(!arr.length) return "";
+  const latestRound = getLatestRound(arr);
+  const latest = arr.filter(m => Number(m.round || 1) === latestRound);
+  if(latest.length === 1 && latest[0].winner) return latest[0].winner;
+  return "";
+}
+
+function renderKnockoutChart(matches){
+  if(!Array.isArray(matches) || matches.length === 0){
+    return `<div class="small">Belum ada bagan. Klik Generate Bagan Acak.</div>`;
+  }
+
+  const champion = getTournamentChampion(matches);
+  const grouped = {};
+  matches.forEach(m => {
+    grouped[m.round || 1] = grouped[m.round || 1] || [];
+    grouped[m.round || 1].push(m);
+  });
+
+  const chart = Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).map(round => {
+    const roundMatches = grouped[round];
+    const allDone = roundMatches.every(m => !!m.winner);
+    return `
+      <div class="bracketRound">
+        <h3>${getRoundName(round)} ${allDone ? "✅" : ""}</h3>
+        ${roundMatches.map(m => {
+          const active = currentState.active_match_id === m.id ? " active" : "";
+          const aWin = m.side_a && m.winner === m.side_a.team;
+          const bWin = m.side_b && m.winner === m.side_b.team;
+          return `
+            <div class="bracketChartMatch${active}">
+              <div class="small">Match ${m.no}${currentState.active_match_id === m.id ? " • AKTIF" : ""}</div>
+              <div class="bracketSlot ${aWin ? "win" : ""} ${!m.side_a ? "bye" : ""}">
+                ${entryDisplayName(m.side_a)}
+              </div>
+              <div class="bracketLine"></div>
+              <div class="bracketSlot ${bWin ? "win" : ""} ${!m.side_b ? "bye" : ""}">
+                ${entryDisplayName(m.side_b)}
+              </div>
+              ${m.winner ? `<div class="winnerBadge">WINNER: ${m.winner}</div>` : ""}
+              <div class="miniActions">
+                <button class="green" onclick="syncBracketMatch('${m.id}')">Pakai</button>
+                <button class="yellow" onclick="updateActiveBracketWinner()">Winner</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }).join("");
+
+  return `
+    ${champion ? `<div class="championBox">🏆 JUARA: ${champion}</div>` : ""}
+    <div class="bracketChart">${chart}</div>
+  `;
 }
 
 function renderTournament(){
   const entriesBox = $("tournamentEntries");
   const bracketBox = $("tournamentBracket");
   const noteBox = $("tournamentNote");
+  const modeSelect = $("tournamentViewMode");
+
+  if(modeSelect && document.activeElement !== modeSelect){
+    modeSelect.value = currentState.tournament_view_mode || "list";
+  }
 
   if(entriesBox){
     const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
@@ -1366,18 +1579,30 @@ function renderTournament(){
 
   if(bracketBox){
     const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+    const viewMode = currentState.tournament_view_mode || "list";
+
     if(matches.length === 0){
       bracketBox.innerHTML = `<div class="small">Belum ada bagan. Klik Generate Bagan Acak.</div>`;
-    }else{
-      const grouped = {};
-      matches.forEach(m => {
-        grouped[m.round || 1] = grouped[m.round || 1] || [];
-        grouped[m.round || 1].push(m);
-      });
+      return;
+    }
 
-      bracketBox.innerHTML = Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).map(round => `
-        <div class="matchRoundTitle">Ronde ${round}</div>
-        ${grouped[round].map(m => {
+    if(viewMode === "knockout"){
+      bracketBox.innerHTML = renderKnockoutChart(matches);
+      return;
+    }
+
+    const grouped = {};
+    matches.forEach(m => {
+      grouped[m.round || 1] = grouped[m.round || 1] || [];
+      grouped[m.round || 1].push(m);
+    });
+
+    bracketBox.innerHTML = Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).map(round => {
+      const roundMatches = grouped[round];
+      const allDone = roundMatches.every(m => !!m.winner);
+      return `
+        <div class="matchRoundTitle">${getRoundName(round)} ${allDone ? "✅" : ""}</div>
+        ${roundMatches.map(m => {
           const active = currentState.active_match_id === m.id ? " • AKTIF" : "";
           const conflict = sameTeamConflict(m.side_a, m.side_b) ? `<div class="warningBadge">Team/club sama</div>` : "";
           return `
@@ -1393,12 +1618,14 @@ function renderTournament(){
               <div class="miniActions">
                 <button class="green" onclick="syncBracketMatch('${m.id}')">Pakai Match</button>
                 <button class="yellow" onclick="updateActiveBracketWinner()">Update Winner</button>
+                <button class="gray" onclick="setManualBracketWinner('${m.id}','a')">Win A</button>
+                <button class="gray" onclick="setManualBracketWinner('${m.id}','b')">Win B</button>
               </div>
             </div>
           `;
         }).join("")}
-      `).join("");
-    }
+      `;
+    }).join("");
   }
 }
 
