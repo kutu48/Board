@@ -26,6 +26,10 @@
     .small{font-size:13px;color:#94a3b8}
     .scorebox{text-align:center;font-size:44px;font-weight:900;background:#020617;border-radius:16px;padding:14px;margin:8px 0}
     .historyItem{background:#0f172a;border:1px solid #334155;padding:10px;border-radius:12px;margin:8px 0;font-size:14px}
+    .setHistoryList{margin-top:8px;border-top:1px dashed #475569;padding-top:8px}
+    .setHistoryRow{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;background:#020617;border:1px solid #334155;border-radius:10px;padding:8px;margin:5px 0;font-size:12px}
+    .setHistoryWinner{color:#22c55e;font-weight:900}
+    .setHistoryLive{color:#fbbf24;font-weight:900}
     .menuWrap{margin:0;padding-bottom:82px}
     .menuList{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#020617;border-top:1px solid #334155;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px}
     .menuTitle{display:none}
@@ -35,6 +39,15 @@
     .menuSection{display:none}
     .menuSection.active{display:block}
     .miniActions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+    .entryItem,.matchItem{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:12px;margin:8px 0}
+    .entryName{font-weight:900;color:#fff;font-size:15px}
+    .entryPlayers{font-size:12px;color:#cbd5e1;margin-top:4px}
+    .matchRoundTitle{font-weight:900;color:#fbbf24;margin:14px 0 8px}
+    .matchTeams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
+    .matchTeam{background:#020617;border:1px solid #334155;border-radius:12px;padding:10px;min-height:56px}
+    .matchVs{font-weight:900;color:#fbbf24}
+    .winnerBadge{display:inline-block;background:#16a34a;color:white;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;margin-top:6px}
+    .warningBadge{display:inline-block;background:#f59e0b;color:#111;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;margin:6px 0}
     .subMenu{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px}
     .subBtn{background:#111827;border:1px solid #334155;color:#e2e8f0;border-radius:14px;padding:12px;font-weight:900}
     .subBtn.active{background:#2563eb;border-color:#93c5fd;color:#fff}
@@ -46,6 +59,8 @@
     .teamCounter.teamBBox{background:linear-gradient(135deg,#b91c1c,#020617)}
     .teamCounter h2{font-size:20px;text-align:center;margin:0 0 8px;line-height:1.1}
     .bigScore{font-size:86px;font-weight:900;text-align:center;background:#0007;border-radius:20px;padding:18px 8px;margin:10px 0;text-shadow:0 8px 22px #000}
+    .matchInfoBox{background:#020617;border:1px solid #334155;border-radius:16px;padding:12px;margin:10px 0;text-align:center;font-weight:900;color:#fbbf24}
+    .setMini{font-size:13px;color:#dbeafe;text-align:center;margin-top:4px;font-weight:800}
     .scoreBtns{display:grid;grid-template-columns:1fr;gap:10px}
     .scoreBtns button{font-size:24px;padding:20px 8px;border-radius:18px}
     .controlHeaderMini{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#020617;border-bottom:1px solid #334155;position:sticky;top:0;z-index:20}
@@ -72,6 +87,8 @@
     .center{background:#020617;display:flex;align-items:center;justify-content:center;flex-direction:column;border-left:4px solid #334155;border-right:4px solid #334155}
     .timerDisplay{font-size:6vh;font-weight:900;background:#111827;border:3px solid #475569;border-radius:2vh;padding:2vh 2vw}
     .vs{font-size:5vh;font-weight:900;margin-top:3vh;color:#fbbf24}
+    .setStatus{font-size:2.2vh;font-weight:900;color:#e2e8f0;margin-top:2vh;text-align:center;text-transform:uppercase}
+    .matchStatus{font-size:2.4vh;font-weight:900;color:#fbbf24;margin-top:1vh;text-align:center;text-transform:uppercase;max-width:18vw;line-height:1.2}
     .bottom{height:8vh;background:#020617;display:flex;align-items:center;justify-content:center;gap:1vw;border-top:2px solid #334155}
     .pill{font-size:1.45vh;font-weight:800;background:#111827;border:1px solid #475569;border-radius:999px;padding:.8vh 1.2vw;text-transform:uppercase;color:#cbd5e1}
     .iconBtn{z-index:30;color:#fff;border-radius:999px;width:34px;height:34px;padding:0;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px #0007}
@@ -158,9 +175,11 @@
         <section id="menuCounter" class="menuSection active">
           <div class="card">
             <h2 class="sectionTitle">Counter Pertandingan</h2>
+            <div class="matchInfoBox" id="matchInfoControl">SET 1 • SET TEAM A 0 - 0 TEAM B</div>
             <div class="counterGrid">
               <div class="teamCounter teamABox">
                 <h2 id="titleA">TEAM A</h2>
+                <div class="setMini" id="setMiniA">Set menang: 0</div>
                 <div class="bigScore" id="scoreA">0</div>
                 <div class="scoreBtns">
                   <button class="green" onclick="changeScore('a',1)">+1</button>
@@ -169,6 +188,7 @@
               </div>
               <div class="teamCounter teamBBox">
                 <h2 id="titleB">TEAM B</h2>
+                <div class="setMini" id="setMiniB">Set menang: 0</div>
                 <div class="bigScore" id="scoreB">0</div>
                 <div class="scoreBtns">
                   <button class="green" onclick="changeScore('b',1)">+1</button>
@@ -200,7 +220,9 @@
               <button class="red" onclick="resetScore()">Reset Score</button>
               <button class="yellow" onclick="sendBuzzer()">Buzzer</button>
               <button class="green" onclick="saveHistory()">Simpan History</button>
+              <button class="green" onclick="updateActiveBracketWinner()">Update Winner Bagan</button>
               <button class="purple" onclick="newMatch()">Match Baru</button>
+              <button class="gray" onclick="resetBadmintonMatch()">Reset Set/Match</button>
             </div>
           </div>
         </section>
@@ -211,6 +233,7 @@
             <button class="subBtn" onclick="openSubMenu('subTeam', this)">Team</button>
             <button class="subBtn" onclick="openSubMenu('subPlayers', this)">Pemain</button>
             <button class="subBtn" onclick="openSubMenu('subVisual', this)">Visual</button>
+            <button class="subBtn" onclick="openSubMenu('subBracket', this)">Bagan</button>
           </div>
 
           <div id="subData" class="subPanel active">
@@ -273,6 +296,37 @@
               <button class="purple" onclick="setVisual()">Update Visual</button>
             </div>
           </div>
+
+          <div id="subBracket" class="subPanel">
+            <div class="card">
+              <h2>Bagan Turnamen</h2>
+              <div class="small">Buat daftar peserta, lalu generate bagan acak. Sistem mencoba agar peserta dari team/club yang sama tidak ketemu di ronde awal.</div>
+              <input id="tourTeam" placeholder="Nama Team / Club / Kontingen">
+              <input id="tourPlayer1" placeholder="Nama Pemain 1">
+              <input id="tourPlayer2" placeholder="Nama Pemain 2 / kosong jika single">
+              <div class="grid">
+                <input id="tourColor" type="color" value="#2563eb">
+                <input id="tourLogo" placeholder="URL Logo, boleh kosong">
+              </div>
+              <div class="grid">
+                <button class="green" onclick="addTournamentEntry()">Tambah Peserta</button>
+                <button class="purple" onclick="generateTournamentBracket()">Generate Bagan Acak</button>
+                <button class="red" onclick="clearTournament()">Hapus Bagan</button>
+                <button class="gray" onclick="clearTournamentEntries()">Hapus Peserta</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Daftar Peserta</h2>
+              <div id="tournamentEntries"></div>
+            </div>
+
+            <div class="card">
+              <h2>Bagan Pertandingan</h2>
+              <div id="tournamentNote"></div>
+              <div id="tournamentBracket"></div>
+            </div>
+          </div>
         </section>
 
         <section id="menuSettingGroup" class="menuSection">
@@ -324,6 +378,8 @@
     <div class="center">
       <div class="timerDisplay" id="displayTimer">00:00</div>
       <div class="vs">VS</div>
+      <div class="setStatus" id="displaySetStatus">SET 1 • 0 - 0</div>
+      <div class="matchStatus" id="displayMatchStatus"></div>
     </div>
     <div class="team" id="panelB">
       <img class="logo" id="displayLogoB" style="display:none">
@@ -354,6 +410,17 @@ const DEFAULT_STATE = {
   player_b2:"",
   score_a:0,
   score_b:0,
+  set_a:0,
+  set_b:0,
+  current_set:1,
+  set_scores:[],
+  match_finished:false,
+  match_winner:"",
+  last_point_status:"",
+  tournament_entries:[],
+  tournament_matches:[],
+  active_match_id:"",
+  tournament_note:"",
   color_a:"#2563eb",
   color_b:"#dc2626",
   logo_a:"",
@@ -516,6 +583,151 @@ function formatTime(sec){
   return `${m}:${s}`;
 }
 
+
+function isBadmintonMode(s){
+  return String(s.mode || "").toLowerCase() === "badminton";
+}
+
+function checkBadmintonSetWinner(a, b){
+  a = Number(a || 0);
+  b = Number(b || 0);
+
+  // Rally point utama sampai 21.
+  // Jika 20-20, harus unggul 2 poin.
+  // Maksimal 30; jika 29-29, siapa duluan 30 menang set.
+  if(a < 21 && b < 21) return null;
+
+  if(a === 30 && a > b) return "a";
+  if(b === 30 && b > a) return "b";
+
+  if(a >= 21 && a - b >= 2) return "a";
+  if(b >= 21 && b - a >= 2) return "b";
+
+  return null;
+}
+
+function getBadmintonPointStatus(s){
+  if(!isBadmintonMode(s) || s.match_finished) return "";
+
+  const a = Number(s.score_a || 0);
+  const b = Number(s.score_b || 0);
+  const setA = Number(s.set_a || 0);
+  const setB = Number(s.set_b || 0);
+
+  if(a === 29 && b === 29) return "FINAL POINT";
+
+  let leader = null;
+
+  // Normal game point/set point sebelum deuce.
+  if(a === 20 && b <= 18) leader = "a";
+  if(b === 20 && a <= 18) leader = "b";
+
+  // Setelah deuce, yang unggul 1 adalah set point.
+  if(a >= 20 && a < 30 && a - b === 1) leader = "a";
+  if(b >= 20 && b < 30 && b - a === 1) leader = "b";
+
+  // Mendekati batas maksimal.
+  if(a === 29 && b <= 28) leader = "a";
+  if(b === 29 && a <= 28) leader = "b";
+
+  if(!leader) return "";
+
+  const willWinMatch = leader === "a" ? (setA + 1 >= 2) : (setB + 1 >= 2);
+  const teamName = leader === "a" ? s.team_a : s.team_b;
+  return `${willWinMatch ? "MATCH POINT" : "SET POINT"} ${teamName}`;
+}
+
+function badmintonInfoText(s){
+  if(!isBadmintonMode(s)) return "";
+
+  const setA = Number(s.set_a || 0);
+  const setB = Number(s.set_b || 0);
+  const currentSet = Number(s.current_set || 1);
+
+  if(s.match_finished){
+    return `PEMENANG MATCH: ${s.match_winner || "-"} • SET ${setA} - ${setB}`;
+  }
+
+  const pointStatus = getBadmintonPointStatus(s);
+  return `SET ${currentSet} • SET ${s.team_a} ${setA} - ${setB} ${s.team_b}${pointStatus ? " • " + pointStatus : ""}`;
+}
+
+async function applyBadmintonScore(team, delta){
+  const s = currentState;
+
+  if(s.match_finished && delta > 0){
+    alert("Match sudah selesai. Klik Match Baru untuk mulai pertandingan baru.");
+    return;
+  }
+
+  let newA = Number(s.score_a || 0);
+  let newB = Number(s.score_b || 0);
+
+  if(team === "a") newA = Math.max(0, Math.min(30, newA + delta));
+  if(team === "b") newB = Math.max(0, Math.min(30, newB + delta));
+
+  let patch = {
+    score_a:newA,
+    score_b:newB,
+    last_point_status:getBadmintonPointStatus({...s, score_a:newA, score_b:newB})
+  };
+
+  // Saat poin turun, cukup update score saja. Set tidak otomatis mundur.
+  if(delta <= 0){
+    await update(ref(db, "scoreboard/state"), patch);
+    return;
+  }
+
+  const setWinner = checkBadmintonSetWinner(newA, newB);
+
+  if(setWinner){
+    const setA = Number(s.set_a || 0) + (setWinner === "a" ? 1 : 0);
+    const setB = Number(s.set_b || 0) + (setWinner === "b" ? 1 : 0);
+    const setScores = Array.isArray(s.set_scores) ? [...s.set_scores] : [];
+    const winnerName = setWinner === "a" ? s.team_a : s.team_b;
+
+    setScores.push({
+      set:Number(s.current_set || 1),
+      score_a:newA,
+      score_b:newB,
+      winner:setWinner,
+      winner_name:winnerName,
+      saved_at:new Date().toLocaleString("id-ID")
+    });
+
+    const matchFinished = setA >= 2 || setB >= 2;
+
+    if(matchFinished){
+      patch = {
+        score_a:newA,
+        score_b:newB,
+        set_a:setA,
+        set_b:setB,
+        set_scores:setScores,
+        match_finished:true,
+        match_winner:winnerName,
+        last_point_status:`PEMENANG MATCH ${winnerName}`
+      };
+      speakText(`Pemenang match ${winnerName}`);
+    }else{
+      patch = {
+        score_a:0,
+        score_b:0,
+        set_a:setA,
+        set_b:setB,
+        set_scores:setScores,
+        current_set:Number(s.current_set || 1) + 1,
+        match_finished:false,
+        match_winner:"",
+        last_point_status:`SET ${s.current_set || 1} dimenangkan ${winnerName}`
+      };
+      speakText(`Set ${s.current_set || 1} dimenangkan ${winnerName}`);
+    }
+  }
+
+  await update(ref(db, "scoreboard/state"), patch);
+}
+
 function renderAll(){
   const s = currentState;
   const t = formatTime(timerValue(s));
@@ -538,6 +750,9 @@ function renderAll(){
     $("scoreB").innerText = s.score_b;
     $("titleA").innerText = s.team_a;
     $("titleB").innerText = s.team_b;
+    if($("setMiniA")) $("setMiniA").innerText = `Set menang: ${s.set_a || 0}`;
+    if($("setMiniB")) $("setMiniB").innerText = `Set menang: ${s.set_b || 0}`;
+    if($("matchInfoControl")) $("matchInfoControl").innerText = badmintonInfoText(s) || `${s.mode} • ${s.period}`;
     $("timerControl").innerText = t;
   }
 
@@ -554,6 +769,8 @@ function renderAll(){
     $("displayScoreA").innerText = s.score_a;
     $("displayScoreB").innerText = s.score_b;
     $("displayTimer").innerText = t;
+    if($("displaySetStatus")) $("displaySetStatus").innerText = isBadmintonMode(s) ? `SET ${s.current_set || 1} • ${s.set_a || 0} - ${s.set_b || 0}` : String(s.period || "");
+    if($("displayMatchStatus")) $("displayMatchStatus").innerText = badmintonInfoText(s).replace(/^SET\s+\d+\s+•\s+/, "");
     announceScoreIfChanged(s);
     $("panelA").style.background = `linear-gradient(135deg, ${s.color_a}, #020617)`;
     $("panelB").style.background = `linear-gradient(135deg, ${s.color_b}, #020617)`;
@@ -590,25 +807,11 @@ function numberId(n, kosong=false){
 }
 
 function isMatchPoint(s){
-  const a = Number(s.score_a || 0);
-  const b = Number(s.score_b || 0);
-  const mode = String(s.mode || "").toLowerCase();
-
-  if(mode === "futsal") return null;
-
-  const leadTeam = a > b ? "a" : (b > a ? "b" : "");
-  if(!leadTeam) return null;
-
-  const lead = Math.max(a,b);
-  const behind = Math.min(a,b);
-
-  // Badminton/voli sederhana:
-  // 20-19, 21-20, 22-21 dianggap match/set point.
-  // 29-29 belum ada leader; 30 adalah batas umum badminton.
-  if(lead >= 20 && lead - behind >= 1){
-    return leadTeam;
-  }
-  return null;
+  const status = getBadmintonPointStatus(s);
+  if(!status) return null;
+  if(status.includes(s.team_a)) return "a";
+  if(status.includes(s.team_b)) return "b";
+  return status === "FINAL POINT" ? "final" : null;
 }
 
 function speakText(text){
@@ -641,13 +844,11 @@ function announceScoreIfChanged(s){
   prevScoreA = a;
   prevScoreB = b;
 
-  const mp = isMatchPoint(s);
+  const status = getBadmintonPointStatus(s);
   let text = "";
 
-  if(mp === "a"){
-    text = `Match point ${s.team_a}. ${numberId(a, true)} ${numberId(b, true)}`;
-  }else if(mp === "b"){
-    text = `Match point ${s.team_b}. ${numberId(a, true)} ${numberId(b, true)}`;
+  if(status){
+    text = `${status}. ${numberId(a, true)} ${numberId(b, true)}`;
   }else{
     text = `${numberId(a, true)} ${numberId(b, true)}`;
   }
@@ -729,8 +930,14 @@ window.setVisual = function(){
   });
 }
 
-window.changeScore = function(team, delta){
+window.changeScore = async function(team, delta){
   if(!requireAdmin()) return;
+
+  if(isBadmintonMode(currentState)){
+    await applyBadmintonScore(team, delta);
+    return;
+  }
+
   const key = team === "a" ? "score_a" : "score_b";
   const val = Math.max(0, Number(currentState[key] || 0) + delta);
   update(ref(db, "scoreboard/state"), {[key]:val});
@@ -738,7 +945,24 @@ window.changeScore = function(team, delta){
 
 window.resetScore = function(){
   if(!requireAdmin()) return;
-  update(ref(db, "scoreboard/state"), {score_a:0, score_b:0});
+  update(ref(db, "scoreboard/state"), {score_a:0, score_b:0, last_point_status:""});
+}
+
+
+window.resetBadmintonMatch = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Reset score, set, dan status match badminton?")) return;
+  await update(ref(db, "scoreboard/state"), {
+    score_a:0,
+    score_b:0,
+    set_a:0,
+    set_b:0,
+    current_set:1,
+    set_scores:[],
+    match_finished:false,
+    match_winner:"",
+    last_point_status:""
+  });
 }
 
 window.timerSet = function(){
@@ -785,17 +1009,82 @@ window.sendBuzzer = function(){
   });
 }
 
+
+function buildSetHistorySnapshot(s){
+  const sets = Array.isArray(s.set_scores) ? [...s.set_scores] : [];
+
+  // Kalau match belum selesai dan masih ada score berjalan,
+  // catat set yang sedang berlangsung supaya history tetap lengkap.
+  const currentA = Number(s.score_a || 0);
+  const currentB = Number(s.score_b || 0);
+  const currentSet = Number(s.current_set || 1);
+
+  const alreadyRecorded = sets.some(x => Number(x.set || 0) === currentSet);
+
+  if(!s.match_finished && !alreadyRecorded && (currentA > 0 || currentB > 0)){
+    sets.push({
+      set:currentSet,
+      score_a:currentA,
+      score_b:currentB,
+      winner:"",
+      winner_name:"",
+      status:"sedang berjalan",
+      saved_at:new Date().toLocaleString("id-ID")
+    });
+  }
+
+  return sets;
+}
+
+function renderSetHistoryRows(h){
+  const sets = Array.isArray(h.set_history)
+    ? h.set_history
+    : (Array.isArray(h.set_scores) ? h.set_scores : []);
+
+  if(!sets.length) return "";
+
+  return `
+    <div class="setHistoryList">
+      ${sets.map(st => {
+        const label = `Set ${st.set || "-"}`;
+        const score = `${h.team_a || "TEAM A"} ${st.score_a ?? 0} - ${st.score_b ?? 0} ${h.team_b || "TEAM B"}`;
+        const winner = st.winner_name
+          ? `<span class="setHistoryWinner">Win: ${st.winner_name}</span>`
+          : `<span class="setHistoryLive">${st.status || "Belum selesai"}</span>`;
+        return `<div class="setHistoryRow"><div>${label}</div><div>${score}</div><div>${winner}</div></div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 window.saveHistory = async function(){
   if(!requireAdmin()) return;
-  const s = {...currentState, timer_seconds:timerValue(currentState), saved_at:new Date().toLocaleString("id-ID")};
+
+  const setHistory = buildSetHistorySnapshot(currentState);
+  const s = {
+    ...currentState,
+    timer_seconds:timerValue(currentState),
+    set_history:setHistory,
+    final_set_score:`${currentState.set_a || 0}-${currentState.set_b || 0}`,
+    final_point_score:`${currentState.score_a || 0}-${currentState.score_b || 0}`,
+    saved_at:new Date().toLocaleString("id-ID")
+  };
+
   await push(ref(db, "scoreboard/history"), s);
+  alert("History pertandingan berhasil disimpan lengkap per set/babak");
 }
 
 window.newMatch = async function(){
   if(!requireAdmin()) return;
   if(!confirm("Simpan history dan mulai match baru?")) return;
   await window.saveHistory();
-  await set(ref(db, "scoreboard/state"), {...DEFAULT_STATE, admin_password:currentState.admin_password});
+  await set(ref(db, "scoreboard/state"), {
+    ...DEFAULT_STATE,
+    admin_password:currentState.admin_password,
+    tournament_entries:currentState.tournament_entries || [],
+    tournament_matches:currentState.tournament_matches || [],
+    tournament_note:currentState.tournament_note || ""
+  });
 }
 
 window.changePassword = function(){
@@ -823,6 +1112,296 @@ window.resetAllData = async function(){
   alert("Semua data berhasil direset");
 }
 
+
+function entryDisplayName(e){
+  if(!e) return "BYE";
+  const players = [e.player1, e.player2].filter(Boolean).join(" / ");
+  return players ? `${e.team} - ${players}` : e.team;
+}
+
+function sameTeamConflict(a, b){
+  if(!a || !b) return false;
+  return String(a.team || "").trim().toLowerCase() === String(b.team || "").trim().toLowerCase();
+}
+
+function shuffleArray(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function countFirstRoundConflicts(arr){
+  let c = 0;
+  for(let i=0;i<arr.length;i+=2){
+    if(sameTeamConflict(arr[i], arr[i+1])) c++;
+  }
+  return c;
+}
+
+function makeBestRandomOrder(entries){
+  let best = shuffleArray(entries);
+  let bestConflict = countFirstRoundConflicts(best);
+
+  for(let i=0;i<500;i++){
+    const s = shuffleArray(entries);
+    const c = countFirstRoundConflicts(s);
+    if(c < bestConflict){
+      best = s;
+      bestConflict = c;
+      if(c === 0) break;
+    }
+  }
+  return {order:best, conflict:bestConflict};
+}
+
+window.addTournamentEntry = async function(){
+  if(!requireAdmin()) return;
+
+  const team = $("tourTeam").value.trim();
+  const player1 = $("tourPlayer1").value.trim();
+  const player2 = $("tourPlayer2").value.trim();
+  const color = $("tourColor").value || "#2563eb";
+  const logo = $("tourLogo").value.trim();
+
+  if(!team) return alert("Nama team/club wajib diisi");
+  if(!player1) return alert("Nama pemain 1 wajib diisi");
+
+  const entries = Array.isArray(currentState.tournament_entries) ? [...currentState.tournament_entries] : [];
+  entries.push({
+    id:"E" + Date.now() + Math.floor(Math.random()*999),
+    team,
+    player1,
+    player2,
+    color,
+    logo
+  });
+
+  await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
+  $("tourTeam").value = "";
+  $("tourPlayer1").value = "";
+  $("tourPlayer2").value = "";
+  $("tourLogo").value = "";
+}
+
+window.deleteTournamentEntry = async function(id){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus peserta ini?")) return;
+  const entries = (currentState.tournament_entries || []).filter(e => e.id !== id);
+  await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
+}
+
+window.editTournamentEntry = async function(id){
+  if(!requireAdmin()) return;
+  const entries = Array.isArray(currentState.tournament_entries) ? [...currentState.tournament_entries] : [];
+  const idx = entries.findIndex(e => e.id === id);
+  if(idx < 0) return;
+
+  const e = entries[idx];
+  const team = prompt("Nama Team / Club:", e.team || "");
+  if(team === null) return;
+  const p1 = prompt("Nama Pemain 1:", e.player1 || "");
+  if(p1 === null) return;
+  const p2 = prompt("Nama Pemain 2:", e.player2 || "");
+  if(p2 === null) return;
+  const logo = prompt("URL Logo:", e.logo || "");
+  if(logo === null) return;
+
+  entries[idx] = {...e, team:team.trim(), player1:p1.trim(), player2:p2.trim(), logo:logo.trim()};
+  await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
+}
+
+window.generateTournamentBracket = async function(){
+  if(!requireAdmin()) return;
+  const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
+  if(entries.length < 2) return alert("Minimal 2 peserta untuk membuat bagan");
+
+  const result = makeBestRandomOrder(entries);
+  const order = result.order;
+  const matches = [];
+
+  for(let i=0;i<order.length;i+=2){
+    const sideA = order[i] || null;
+    const sideB = order[i+1] || null;
+    matches.push({
+      id:"M" + Date.now() + "_" + i,
+      round:1,
+      no:(i/2)+1,
+      side_a:sideA,
+      side_b:sideB,
+      score_a:0,
+      score_b:0,
+      winner:"",
+      status:sideB ? "scheduled" : "bye"
+    });
+  }
+
+  const note = result.conflict === 0
+    ? "Bagan berhasil dibuat. Tidak ada peserta dari team/club yang sama bertemu di ronde awal."
+    : `Bagan dibuat, tetapi masih ada ${result.conflict} pasangan dari team/club yang sama karena komposisi peserta tidak memungkinkan dihindari semua.`;
+
+  await update(ref(db, "scoreboard/state"), {
+    tournament_matches:matches,
+    tournament_note:note,
+    active_match_id:""
+  });
+  alert(note);
+}
+
+window.clearTournament = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus bagan pertandingan? Daftar peserta tetap disimpan.")) return;
+  await update(ref(db, "scoreboard/state"), {
+    tournament_matches:[],
+    tournament_note:"",
+    active_match_id:""
+  });
+}
+
+window.clearTournamentEntries = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus semua peserta dan bagan?")) return;
+  await update(ref(db, "scoreboard/state"), {
+    tournament_entries:[],
+    tournament_matches:[],
+    tournament_note:"",
+    active_match_id:""
+  });
+}
+
+window.syncBracketMatch = async function(matchId){
+  if(!requireAdmin()) return;
+
+  const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+  const m = matches.find(x => x.id === matchId);
+  if(!m) return alert("Match tidak ditemukan");
+  if(!m.side_a || !m.side_b) return alert("Match ini BYE, tidak bisa dipakai");
+
+  const a = m.side_a;
+  const b = m.side_b;
+
+  await update(ref(db, "scoreboard/state"), {
+    event_name: currentState.event_name || "TURNAMEN SCOREBOARD",
+    mode:"badminton",
+    period:`Ronde ${m.round} - Match ${m.no}`,
+    team_a:a.team || "TEAM A",
+    team_b:b.team || "TEAM B",
+    player_a1:a.player1 || "",
+    player_a2:a.player2 || "",
+    player_b1:b.player1 || "",
+    player_b2:b.player2 || "",
+    color_a:a.color || "#2563eb",
+    color_b:b.color || "#dc2626",
+    logo_a:a.logo || "",
+    logo_b:b.logo || "",
+    score_a:0,
+    score_b:0,
+    set_a:0,
+    set_b:0,
+    current_set:1,
+    set_scores:[],
+    match_finished:false,
+    match_winner:"",
+    last_point_status:"",
+    active_match_id:matchId
+  });
+
+  alert("Match sudah disinkronkan ke scoreboard");
+}
+
+window.updateActiveBracketWinner = async function(){
+  if(!requireAdmin()) return;
+
+  const matchId = currentState.active_match_id;
+  if(!matchId) return alert("Belum ada match dari bagan yang aktif");
+  if(!currentState.match_finished || !currentState.match_winner){
+    return alert("Match belum selesai. Winner bagan bisa diupdate setelah match selesai.");
+  }
+
+  const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
+  const idx = matches.findIndex(m => m.id === matchId);
+  if(idx < 0) return alert("Match aktif tidak ditemukan di bagan");
+
+  matches[idx] = {
+    ...matches[idx],
+    score_a:currentState.set_a || 0,
+    score_b:currentState.set_b || 0,
+    winner:currentState.match_winner,
+    status:"finished",
+    finished_at:new Date().toLocaleString("id-ID")
+  };
+
+  await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
+  alert("Winner berhasil diupdate ke bagan");
+}
+
+function renderTournament(){
+  const entriesBox = $("tournamentEntries");
+  const bracketBox = $("tournamentBracket");
+  const noteBox = $("tournamentNote");
+
+  if(entriesBox){
+    const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
+    if(entries.length === 0){
+      entriesBox.innerHTML = `<div class="small">Belum ada peserta.</div>`;
+    }else{
+      entriesBox.innerHTML = entries.map((e, i) => `
+        <div class="entryItem">
+          <div class="entryName">${i+1}. ${e.team || "-"}</div>
+          <div class="entryPlayers">${[e.player1, e.player2].filter(Boolean).join(" / ")}</div>
+          <div class="miniActions">
+            <button class="yellow" onclick="editTournamentEntry('${e.id}')">Edit</button>
+            <button class="red" onclick="deleteTournamentEntry('${e.id}')">Hapus</button>
+          </div>
+        </div>
+      `).join("");
+    }
+  }
+
+  if(noteBox){
+    noteBox.innerHTML = currentState.tournament_note ? `<div class="warningBadge">${currentState.tournament_note}</div>` : "";
+  }
+
+  if(bracketBox){
+    const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+    if(matches.length === 0){
+      bracketBox.innerHTML = `<div class="small">Belum ada bagan. Klik Generate Bagan Acak.</div>`;
+    }else{
+      const grouped = {};
+      matches.forEach(m => {
+        grouped[m.round || 1] = grouped[m.round || 1] || [];
+        grouped[m.round || 1].push(m);
+      });
+
+      bracketBox.innerHTML = Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).map(round => `
+        <div class="matchRoundTitle">Ronde ${round}</div>
+        ${grouped[round].map(m => {
+          const active = currentState.active_match_id === m.id ? " • AKTIF" : "";
+          const conflict = sameTeamConflict(m.side_a, m.side_b) ? `<div class="warningBadge">Team/club sama</div>` : "";
+          return `
+            <div class="matchItem">
+              <div class="small">Match ${m.no}${active}</div>
+              <div class="matchTeams">
+                <div class="matchTeam">${entryDisplayName(m.side_a)}</div>
+                <div class="matchVs">VS</div>
+                <div class="matchTeam">${entryDisplayName(m.side_b)}</div>
+              </div>
+              ${conflict}
+              ${m.winner ? `<div class="winnerBadge">WINNER: ${m.winner}</div>` : ""}
+              <div class="miniActions">
+                <button class="green" onclick="syncBracketMatch('${m.id}')">Pakai Match</button>
+                <button class="yellow" onclick="updateActiveBracketWinner()">Update Winner</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      `).join("");
+    }
+  }
+}
+
 function renderHistory(obj){
   const box = $("history");
   if(!box) return;
@@ -840,8 +1419,9 @@ function renderHistory(obj){
     div.innerHTML = `
       <b>${h.saved_at || "-"}</b><br>
       ${h.event_name || "-"} - ${h.mode || "-"} - ${h.period || "-"}<br>
-      ${h.team_a || "TEAM A"} <b>${h.score_a ?? 0}</b> vs <b>${h.score_b ?? 0}</b> ${h.team_b || "TEAM B"}<br>
+      <b>Hasil Match:</b> ${h.team_a || "TEAM A"} <b>${h.set_a ?? 0}</b> - <b>${h.set_b ?? 0}</b> ${h.team_b || "TEAM B"}<br>
       <span class="small">${hpA} ${hpA || hpB ? "vs" : ""} ${hpB}</span>
+      ${renderSetHistoryRows(h)}
       <div class="miniActions">
         <button class="yellow" onclick="editHistoryItem('${key}')">Edit</button>
         <button class="red" onclick="deleteHistoryItem('${key}')">Hapus</button>
@@ -898,6 +1478,7 @@ window.editHistoryItem = async function(key){
 }
 
 setInterval(renderAll, 500);
+setInterval(renderTournament, 1000);
 init();
 </script>
 </body>
