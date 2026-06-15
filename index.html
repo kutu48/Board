@@ -72,6 +72,7 @@
     .teamCounter h2{font-size:20px;text-align:center;margin:0 0 8px;line-height:1.1}
     .bigScore{font-size:86px;font-weight:900;text-align:center;background:#0007;border-radius:20px;padding:18px 8px;margin:10px 0;text-shadow:0 8px 22px #000}
     .matchInfoBox{background:#020617;border:1px solid #334155;border-radius:16px;padding:12px;margin:10px 0;text-align:center;font-weight:900;color:#fbbf24}
+    .ruleInfoBox{background:#020617;border:1px solid #334155;border-radius:14px;padding:10px;margin:8px 0;color:#cbd5e1;font-size:13px;line-height:1.4}
     .setMini{font-size:13px;color:#dbeafe;text-align:center;margin-top:4px;font-weight:800}
     .scoreBtns{display:grid;grid-template-columns:1fr;gap:10px}
     .scoreBtns button{font-size:24px;padding:20px 8px;border-radius:18px}
@@ -265,7 +266,7 @@
               <button class="green" onclick="saveHistory()">Simpan History</button>
               <button class="green" onclick="updateActiveBracketWinner()">Update Winner Bagan</button>
               <button class="purple" onclick="newMatch()">Match Baru</button>
-              <button class="gray" onclick="resetBadmintonMatch()">Reset Set/Match</button>
+              <button class="gray" onclick="resetSetSportMatch()">Reset Set/Babak</button>
             </div>
           </div>
         </section>
@@ -283,11 +284,12 @@
             <div class="card">
               <h2>Setting Data Pertandingan</h2>
               <input id="eventName" placeholder="Nama Event / Pertandingan">
-              <select id="mode">
+              <select id="mode" onchange="previewSportRule()">
                 <option value="badminton">Badminton</option>
                 <option value="futsal">Futsal</option>
                 <option value="voli">Voli</option>
               </select>
+              <div class="ruleInfoBox" id="sportRuleInfo">Badminton: Best of 3 set, rally point 21, deuce unggul 2, maksimal 30.</div>
               <select id="period">
                 <option>Babak 1</option>
                 <option>Babak 2</option>
@@ -449,7 +451,13 @@ import { getDatabase, ref, onValue, set, update, get, push, remove } from "https
 const DEFAULT_STATE = {
   event_name:"TURNAMEN SCOREBOARD",
   mode:"badminton",
-  period:"Babak 1",
+  period:"Set 1",
+  sport_rule:"set",
+  sport_rule_label:"Badminton - Best of 3 Set",
+  point_target:21,
+  max_point:30,
+  win_by:2,
+  best_of:3,
   team_a:"TEAM A",
   team_b:"TEAM B",
   player_a1:"",
@@ -704,61 +712,136 @@ function formatTime(sec){
 }
 
 
-function isBadmintonMode(s){
-  return String(s.mode || "").toLowerCase() === "badminton";
+
+function getSportRule(mode){
+  mode = String(mode || "badminton").toLowerCase();
+
+  if(mode === "badminton"){
+    return {
+      mode:"badminton",
+      sport_rule:"set",
+      sport_rule_label:"Badminton - Best of 3 Set",
+      period:"Set 1",
+      point_target:21,
+      max_point:30,
+      win_by:2,
+      best_of:3,
+      description:"Badminton: Best of 3 set, rally point 21, deuce unggul 2, maksimal 30. Pemenang match jika menang 2 set."
+    };
+  }
+
+  if(mode === "voli"){
+    return {
+      mode:"voli",
+      sport_rule:"set",
+      sport_rule_label:"Voli - Best of 3 Set",
+      period:"Set 1",
+      point_target:25,
+      max_point:99,
+      win_by:2,
+      best_of:3,
+      description:"Voli: Sistem set, target 25 poin, harus unggul 2 poin. Pemenang match jika menang 2 set."
+    };
+  }
+
+  if(mode === "futsal"){
+    return {
+      mode:"futsal",
+      sport_rule:"period",
+      sport_rule_label:"Futsal - Babak 1 & Babak 2",
+      period:"Babak 1",
+      point_target:0,
+      max_point:999,
+      win_by:0,
+      best_of:0,
+      description:"Futsal: Sistem babak, score gol bebas. Tidak memakai set otomatis."
+    };
+  }
+
+  return {
+    mode,
+    sport_rule:"score",
+    sport_rule_label:"Score Bebas",
+    period:"Babak 1",
+    point_target:0,
+    max_point:999,
+    win_by:0,
+    best_of:0,
+    description:"Mode score bebas."
+  };
 }
 
-function checkBadmintonSetWinner(a, b){
+window.previewSportRule = function(){
+  const modeEl = $("mode");
+  const infoEl = $("sportRuleInfo");
+  if(!modeEl || !infoEl) return;
+  const rule = getSportRule(modeEl.value);
+  infoEl.innerText = rule.description;
+}
+
+function isSetSportMode(s){
+  return String(s.sport_rule || "").toLowerCase() === "set" || ["badminton","voli"].includes(String(s.mode || "").toLowerCase());
+}
+
+function checkSetSportWinner(a, b, s){
   a = Number(a || 0);
   b = Number(b || 0);
 
-  // Rally point utama sampai 21.
-  // Jika 20-20, harus unggul 2 poin.
-  // Maksimal 30; jika 29-29, siapa duluan 30 menang set.
-  if(a < 21 && b < 21) return null;
+  const target = Number(s.point_target || (String(s.mode || "").toLowerCase() === "voli" ? 25 : 21));
+  const maxPoint = Number(s.max_point || (String(s.mode || "").toLowerCase() === "badminton" ? 30 : 99));
+  const winBy = Number(s.win_by || 2);
 
-  if(a === 30 && a > b) return "a";
-  if(b === 30 && b > a) return "b";
+  if(a < target && b < target) return null;
 
-  if(a >= 21 && a - b >= 2) return "a";
-  if(b >= 21 && b - a >= 2) return "b";
+  if(maxPoint > 0){
+    if(a >= maxPoint && a > b) return "a";
+    if(b >= maxPoint && b > a) return "b";
+  }
+
+  if(a >= target && a - b >= winBy) return "a";
+  if(b >= target && b - a >= winBy) return "b";
 
   return null;
 }
 
-function getBadmintonPointStatus(s){
-  if(!isBadmintonMode(s) || s.match_finished) return "";
+function getSetSportPointStatus(s){
+  if(!isSetSportMode(s) || s.match_finished) return "";
 
   const a = Number(s.score_a || 0);
   const b = Number(s.score_b || 0);
   const setA = Number(s.set_a || 0);
   const setB = Number(s.set_b || 0);
+  const target = Number(s.point_target || 21);
+  const maxPoint = Number(s.max_point || 30);
+  const bestOf = Number(s.best_of || 3);
+  const needSetWin = Math.ceil(bestOf / 2);
 
-  if(a === 29 && b === 29) return "FINAL POINT";
+  if(maxPoint > 0 && a === maxPoint - 1 && b === maxPoint - 1) return "FINAL POINT";
 
   let leader = null;
 
-  // Normal game point/set point sebelum deuce.
-  if(a === 20 && b <= 18) leader = "a";
-  if(b === 20 && a <= 18) leader = "b";
+  if(a === target - 1 && b <= target - 3) leader = "a";
+  if(b === target - 1 && a <= target - 3) leader = "b";
 
-  // Setelah deuce, yang unggul 1 adalah set point.
-  if(a >= 20 && a < 30 && a - b === 1) leader = "a";
-  if(b >= 20 && b < 30 && b - a === 1) leader = "b";
+  if(a >= target - 1 && a < maxPoint && a - b === 1) leader = "a";
+  if(b >= target - 1 && b < maxPoint && b - a === 1) leader = "b";
 
-  // Mendekati batas maksimal.
-  if(a === 29 && b <= 28) leader = "a";
-  if(b === 29 && a <= 28) leader = "b";
+  if(maxPoint > 0){
+    if(a === maxPoint - 1 && b <= maxPoint - 2) leader = "a";
+    if(b === maxPoint - 1 && a <= maxPoint - 2) leader = "b";
+  }
 
   if(!leader) return "";
 
-  const willWinMatch = leader === "a" ? (setA + 1 >= 2) : (setB + 1 >= 2);
+  const willWinMatch = leader === "a" ? (setA + 1 >= needSetWin) : (setB + 1 >= needSetWin);
   const teamName = leader === "a" ? s.team_a : s.team_b;
   return `${willWinMatch ? "MATCH POINT" : "SET POINT"} ${teamName}`;
 }
 
-function badmintonInfoText(s){
-  if(!isBadmintonMode(s)) return "";
+function sportInfoText(s){
+  if(!isSetSportMode(s)){
+    return `${s.sport_rule_label || s.mode || ""} • ${s.period || ""}`;
+  }
 
   const setA = Number(s.set_a || 0);
   const setB = Number(s.set_b || 0);
@@ -768,11 +851,11 @@ function badmintonInfoText(s){
     return `PEMENANG MATCH: ${s.match_winner || "-"} • SET ${setA} - ${setB}`;
   }
 
-  const pointStatus = getBadmintonPointStatus(s);
+  const pointStatus = getSetSportPointStatus(s);
   return `SET ${currentSet} • SET ${s.team_a} ${setA} - ${setB} ${s.team_b}${pointStatus ? " • " + pointStatus : ""}`;
 }
 
-async function applyBadmintonScore(team, delta){
+async function applySetSportScore(team, delta){
   const s = currentState;
 
   if(s.match_finished && delta > 0){
@@ -780,31 +863,34 @@ async function applyBadmintonScore(team, delta){
     return;
   }
 
+  const maxPoint = Number(s.max_point || 99);
+
   let newA = Number(s.score_a || 0);
   let newB = Number(s.score_b || 0);
 
-  if(team === "a") newA = Math.max(0, Math.min(30, newA + delta));
-  if(team === "b") newB = Math.max(0, Math.min(30, newB + delta));
+  if(team === "a") newA = Math.max(0, Math.min(maxPoint, newA + delta));
+  if(team === "b") newB = Math.max(0, Math.min(maxPoint, newB + delta));
 
   let patch = {
     score_a:newA,
     score_b:newB,
-    last_point_status:getBadmintonPointStatus({...s, score_a:newA, score_b:newB})
+    last_point_status:getSetSportPointStatus({...s, score_a:newA, score_b:newB})
   };
 
-  // Saat poin turun, cukup update score saja. Set tidak otomatis mundur.
   if(delta <= 0){
     await update(ref(db, "scoreboard/state"), patch);
     return;
   }
 
-  const setWinner = checkBadmintonSetWinner(newA, newB);
+  const setWinner = checkSetSportWinner(newA, newB, s);
 
   if(setWinner){
     const setA = Number(s.set_a || 0) + (setWinner === "a" ? 1 : 0);
     const setB = Number(s.set_b || 0) + (setWinner === "b" ? 1 : 0);
     const setScores = Array.isArray(s.set_scores) ? [...s.set_scores] : [];
     const winnerName = setWinner === "a" ? s.team_a : s.team_b;
+    const bestOf = Number(s.best_of || 3);
+    const needSetWin = Math.ceil(bestOf / 2);
 
     setScores.push({
       set:Number(s.current_set || 1),
@@ -815,7 +901,7 @@ async function applyBadmintonScore(team, delta){
       saved_at:new Date().toLocaleString("id-ID")
     });
 
-    const matchFinished = setA >= 2 || setB >= 2;
+    const matchFinished = setA >= needSetWin || setB >= needSetWin;
 
     if(matchFinished){
       patch = {
@@ -837,6 +923,7 @@ async function applyBadmintonScore(team, delta){
         set_b:setB,
         set_scores:setScores,
         current_set:Number(s.current_set || 1) + 1,
+        period:`Set ${Number(s.current_set || 1) + 1}`,
         match_finished:false,
         match_winner:"",
         last_point_status:`SET ${s.current_set || 1} dimenangkan ${winnerName}`
@@ -848,6 +935,27 @@ async function applyBadmintonScore(team, delta){
   await update(ref(db, "scoreboard/state"), patch);
 }
 
+
+function isBadmintonMode(s){
+  return String(s.mode || "").toLowerCase() === "badminton";
+}
+
+function checkBadmintonSetWinner(a, b){
+  return checkSetSportWinner(a, b, {...currentState, mode:"badminton", sport_rule:"set", point_target:21, max_point:30, win_by:2, best_of:3});
+}
+
+function getBadmintonPointStatus(s){
+  return getSetSportPointStatus({...s, mode:"badminton", sport_rule:"set", point_target:21, max_point:30, win_by:2, best_of:3});
+}
+
+function badmintonInfoText(s){
+  return sportInfoText(s);
+}
+
+async function applyBadmintonScore(team, delta){
+  await applySetSportScore(team, delta);
+}
+
 function renderAll(){
   const s = currentState;
   const t = formatTime(timerValue(s));
@@ -855,6 +963,7 @@ function renderAll(){
   if(!$("controlPage").classList.contains("hidden")){
     setInputValue("eventName", s.event_name);
     setInputValue("mode", s.mode);
+    previewSportRule();
     setInputValue("period", s.period);
     setInputValue("teamA", s.team_a);
     setInputValue("teamB", s.team_b);
@@ -872,7 +981,7 @@ function renderAll(){
     $("titleB").innerText = s.team_b;
     if($("setMiniA")) $("setMiniA").innerText = `Set menang: ${s.set_a || 0}`;
     if($("setMiniB")) $("setMiniB").innerText = `Set menang: ${s.set_b || 0}`;
-    if($("matchInfoControl")) $("matchInfoControl").innerText = badmintonInfoText(s) || `${s.mode} • ${s.period}`;
+    if($("matchInfoControl")) $("matchInfoControl").innerText = sportInfoText(s) || `${s.mode} • ${s.period}`;
     $("timerControl").innerText = t;
   }
 
@@ -889,7 +998,7 @@ function renderAll(){
     $("displayScoreA").innerText = s.score_a;
     $("displayScoreB").innerText = s.score_b;
     $("displayTimer").innerText = t;
-    if($("displaySetStatus")) $("displaySetStatus").innerText = isBadmintonMode(s) ? `SET ${s.current_set || 1} • ${s.set_a || 0} - ${s.set_b || 0}` : String(s.period || "");
+    if($("displaySetStatus")) $("displaySetStatus").innerText = isSetSportMode(s) ? `SET ${s.current_set || 1} • ${s.set_a || 0} - ${s.set_b || 0}` : String(s.period || "");
     if($("displayMatchStatus")) $("displayMatchStatus").innerText = badmintonInfoText(s).replace(/^SET\s+\d+\s+•\s+/, "");
     announceScoreIfChanged(s);
     $("panelA").style.background = `linear-gradient(135deg, ${s.color_a}, #020617)`;
@@ -927,7 +1036,7 @@ function numberId(n, kosong=false){
 }
 
 function isMatchPoint(s){
-  const status = getBadmintonPointStatus(s);
+  const status = getSetSportPointStatus(s);
   if(!status) return null;
   if(status.includes(s.team_a)) return "a";
   if(status.includes(s.team_b)) return "b";
@@ -964,7 +1073,7 @@ function announceScoreIfChanged(s){
   prevScoreA = a;
   prevScoreB = b;
 
-  const status = getBadmintonPointStatus(s);
+  const status = getSetSportPointStatus(s);
   let text = "";
 
   if(status){
@@ -1015,10 +1124,27 @@ window.adminLogin = function(){
 
 window.setMatch = function(){
   if(!requireAdmin()) return;
+  const rule = getSportRule($("mode").value);
+
   update(ref(db, "scoreboard/state"), {
     event_name:($("eventName").value || DEFAULT_STATE.event_name).trim(),
-    mode:$("mode").value,
-    period:$("period").value
+    mode:rule.mode,
+    period:rule.period,
+    sport_rule:rule.sport_rule,
+    sport_rule_label:rule.sport_rule_label,
+    point_target:rule.point_target,
+    max_point:rule.max_point,
+    win_by:rule.win_by,
+    best_of:rule.best_of,
+    score_a:0,
+    score_b:0,
+    set_a:0,
+    set_b:0,
+    current_set:1,
+    set_scores:[],
+    match_finished:false,
+    match_winner:"",
+    last_point_status:""
   });
 }
 
@@ -1053,8 +1179,8 @@ window.setVisual = function(){
 window.changeScore = async function(team, delta){
   if(!requireAdmin()) return;
 
-  if(isBadmintonMode(currentState)){
-    await applyBadmintonScore(team, delta);
+  if(isSetSportMode(currentState)){
+    await applySetSportScore(team, delta);
     return;
   }
 
@@ -1069,9 +1195,9 @@ window.resetScore = function(){
 }
 
 
-window.resetBadmintonMatch = async function(){
+window.resetSetSportMatch = async function(){
   if(!requireAdmin()) return;
-  if(!confirm("Reset score, set, dan status match badminton?")) return;
+  if(!confirm("Reset score, set, dan status match?")) return;
   await update(ref(db, "scoreboard/state"), {
     score_a:0,
     score_b:0,
