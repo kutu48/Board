@@ -79,6 +79,29 @@
     .controlHeaderMini h1{font-size:17px;margin:0}
     .controlHeaderMini .small{font-size:11px}
     .sectionTitle{font-size:18px;margin:12px 12px 0}
+    
+    .rotateHint{display:none;position:fixed;inset:0;background:#020617f2;z-index:9999;color:white;align-items:center;justify-content:center;text-align:center;padding:24px}
+    .rotateHintBox{background:#111827;border:1px solid #334155;border-radius:24px;padding:24px;max-width:420px;box-shadow:0 20px 70px #0009}
+    .rotateIcon{font-size:56px;margin-bottom:12px}
+    .landscapeLockBtn{background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:12px;padding:9px 12px;width:auto;font-size:12px;margin:0}
+    @media(max-width:899px) and (orientation:portrait){
+      body.scoreLandscapeRequired #rotateHint{display:flex}
+    }
+    @media(max-width:899px) and (orientation:landscape){
+      body.scoreLandscapeRequired .controlHeaderMini{display:none}
+      body.scoreLandscapeRequired .menuWrap{padding-bottom:0}
+      body.scoreLandscapeRequired .menuList{display:none}
+      body.scoreLandscapeRequired #menuCounter .card{margin:0;border-radius:0;min-height:100vh;padding:8px}
+      body.scoreLandscapeRequired #menuCounter .sectionTitle{display:none}
+      body.scoreLandscapeRequired #menuCounter .matchInfoBox{margin:4px 0;padding:8px;font-size:12px}
+      body.scoreLandscapeRequired #menuCounter .counterGrid{min-height:calc(100vh - 46px);margin:0}
+      body.scoreLandscapeRequired #menuCounter .teamCounter{min-height:calc(100vh - 46px);padding:8px}
+      body.scoreLandscapeRequired #menuCounter .teamCounter h2{font-size:18px}
+      body.scoreLandscapeRequired #menuCounter .bigScore{font-size:58px;padding:8px;margin:6px 0}
+      body.scoreLandscapeRequired #menuCounter .scoreBtns{gap:6px}
+      body.scoreLandscapeRequired #menuCounter .scoreBtns button{font-size:22px;padding:12px 6px}
+    }
+
     @media(min-width:900px){
       .menuWrap{display:grid;grid-template-columns:260px 1fr;gap:12px;margin:12px;padding-bottom:0}
       .menuList{position:sticky;top:78px;display:block;border:1px solid #334155;border-radius:18px;padding:12px;height:max-content}
@@ -124,6 +147,14 @@
   </style>
 </head>
 <body>
+<div id="rotateHint" class="rotateHint">
+  <div class="rotateHintBox">
+    <div class="rotateIcon">📱↔️</div>
+    <h2>Putar HP ke Landscape</h2>
+    <p>Counter Pertandingan dikunci khusus landscape supaya tombol score lebih besar dan aman dipakai wasit.</p>
+    <button onclick="forceCounterLandscape()">Coba Kunci Landscape</button>
+  </div>
+</div>
 
 <div id="setupPage" class="setup">
   <div class="box">
@@ -474,6 +505,71 @@ const isDisplay = qs.has("display");
 
 function $(id){ return document.getElementById(id); }
 
+function isMobileScreen(){
+  return window.innerWidth < 900 || window.screen.width < 900;
+}
+async function requestAppFullscreen(){
+  try{
+    const el = document.documentElement;
+    if(!document.fullscreenElement && el.requestFullscreen){ await el.requestFullscreen(); }
+  }catch(e){}
+}
+async function lockLandscape(){
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      await screen.orientation.lock("landscape");
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function unlockOrientation(){
+  try{
+    if(screen.orientation && screen.orientation.unlock){ screen.orientation.unlock(); }
+  }catch(e){}
+}
+window.forceCounterLandscape = async function(){
+  document.body.classList.add("scoreLandscapeRequired");
+  await requestAppFullscreen();
+  const ok = await lockLandscape();
+  const hint = $("rotateHint");
+  if(hint && !ok && window.innerHeight > window.innerWidth){ hint.style.display = "flex"; }
+}
+window.enableCounterLandscapeMode = async function(){
+  if(!isControl) return;
+  if(!isMobileScreen()) return;
+  document.body.classList.add("scoreLandscapeRequired");
+  await requestAppFullscreen();
+  await lockLandscape();
+}
+window.disableCounterLandscapeMode = function(){
+  document.body.classList.remove("scoreLandscapeRequired");
+  const hint = $("rotateHint");
+  if(hint) hint.style.display = "";
+  unlockOrientation();
+}
+window.addEventListener("orientationchange", () => {
+  const hint = $("rotateHint");
+  if(!hint) return;
+  setTimeout(()=>{
+    if(document.body.classList.contains("scoreLandscapeRequired") && window.innerHeight > window.innerWidth && isMobileScreen()){
+      hint.style.display = "flex";
+    }else{
+      hint.style.display = "";
+    }
+  },300);
+});
+window.addEventListener("resize", () => {
+  const hint = $("rotateHint");
+  if(!hint) return;
+  if(document.body.classList.contains("scoreLandscapeRequired") && window.innerHeight > window.innerWidth && isMobileScreen()){
+    hint.style.display = "flex";
+  }else{
+    hint.style.display = "";
+  }
+});
+
+
 function setInputValue(id, value){
   const el = $(id);
   if(!el) return;
@@ -488,6 +584,12 @@ window.openMenu = function(sectionId, btn){
   const sec = document.getElementById(sectionId);
   if(sec) sec.classList.add("active");
   if(btn) btn.classList.add("active");
+
+  if(sectionId === "menuCounter"){
+    enableCounterLandscapeMode();
+  }else{
+    disableCounterLandscapeMode();
+  }
 }
 
 window.openSubMenu = function(panelId, btn){
@@ -1707,6 +1809,8 @@ window.editHistoryItem = async function(key){
 setInterval(renderAll, 500);
 setInterval(renderTournament, 1000);
 init();
+// counter_landscape_autostart
+setTimeout(()=>{ if(isControl && document.getElementById('menuCounter')?.classList.contains('active')) enableCounterLandscapeMode(); }, 1200);
 </script>
 </body>
 </html>
