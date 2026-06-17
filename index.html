@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Digital Scoreboard Online</title>
+  <title>Digital Scoreboard Online v4</title>
   <style>
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#020617;color:white}
@@ -137,6 +137,22 @@
     .isFullscreen .configBtn:hover,.isFullscreen .voiceBtn:hover,.isFullscreen .fullscreenBtn:hover{opacity:1}
     .buzzerFlash{animation:flash .18s linear 8}
     @keyframes flash{0%{filter:brightness(1)}50%{filter:brightness(2.2)}100%{filter:brightness(1)}}
+
+    .operatorSafe .adminOnly,.operatorSafe .dangerAdmin{display:none!important}
+    .operatorBadge{display:inline-block;background:#22c55e;color:#052e16;border-radius:999px;padding:4px 9px;font-weight:900;font-size:11px;margin-top:4px}
+    .operatorRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;margin:8px 0}
+    .operatorRow .opName{font-weight:900;color:#fff}
+    .operatorRow .opMeta{font-size:12px;color:#94a3b8;margin-top:3px}
+    .operatorActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .operatorActions button{width:auto;padding:8px 10px;margin:0;font-size:12px;border-radius:10px}
+    .tvSponsorBar{position:absolute;top:14vh;left:0;right:0;height:6vh;display:flex;align-items:center;justify-content:space-between;padding:0 2vw;pointer-events:none;z-index:5}
+    .sponsorBox{display:flex;align-items:center;gap:.8vw;background:#020617aa;border:1px solid #475569;border-radius:999px;padding:.5vh 1vw;font-size:1.8vh;font-weight:900;max-width:28vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .sponsorLogo{width:4vh;height:4vh;object-fit:contain;display:none}
+    .runningTextWrap{height:4vh;background:#111827;border-top:1px solid #475569;overflow:hidden;display:flex;align-items:center;width:100%}
+    .runningText{white-space:nowrap;font-size:2vh;font-weight:900;color:#fbbf24;animation:marquee 22s linear infinite;padding-left:100%}
+    @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+    .formRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .wideBtn{width:100%}
     @media(max-width:700px){
       .grid{grid-template-columns:1fr}
       header{align-items:flex-start;flex-direction:column}
@@ -189,6 +205,7 @@
     <div class="grid">
       <button class="purple" onclick="setDisplayTvMode()">Paksa Mode TV Display</button>
       <button class="green" onclick="setApkPhoneControlMode()">Paksa Mode HP Control</button>
+      <button class="gray" onclick="clearModeForce()">Mode Normal / Reset Mode</button>
     </div>
   </div>
 </div>
@@ -197,19 +214,31 @@
   <div class="controlHeaderMini">
     <div>
       <h1>Scoreboard Control</h1>
-      <div class="small">HP Wasit / Admin</div><div class="small">Mode APK HP Control aktif</div>
+      <div class="small">HP Wasit / Admin</div><div class="small">Mode APK HP Control aktif</div><div id="operatorModeBadge" class="operatorBadge" style="display:none">MODE OPERATOR AMAN</div>
     </div>
     <div>
       <a href="?display=1&forceDisplay=1" target="_blank">TV</a> |
-      <a href="javascript:showSetup()">Setup</a>
+      <a href="javascript:showSetup()">Setup</a> | <a href="javascript:disableOperatorSafeModePrompt()" id="exitOperatorLink" style="display:none">Keluar Operator</a>
     </div>
   </div>
 
   <div class="card" id="loginCard">
-    <h2>Login Admin</h2>
-    <input id="adminPassword" type="password" placeholder="Password admin">
-    <button class="green" onclick="adminLogin()">LOGIN</button>
-    <div class="small">Default: admin123</div>
+    <h2>Login Control</h2>
+    <div class="grid">
+      <div>
+        <h3>Admin</h3>
+        <input id="adminPassword" type="password" placeholder="Password admin">
+        <button class="green" onclick="adminLogin()">LOGIN ADMIN</button>
+        <div class="small">Default admin: admin123</div>
+      </div>
+      <div>
+        <h3>Operator Aman</h3>
+        <select id="operatorLoginName"></select>
+        <input id="operatorPassword" type="password" placeholder="Password operator">
+        <button class="yellow" onclick="operatorLogin()">LOGIN OPERATOR</button>
+        <div class="small">Default operator: Operator 1 / op123</div>
+      </div>
+    </div>
   </div>
 
   <div id="adminPanel" class="hidden">
@@ -218,8 +247,8 @@
         <button class="menuBtn active" onclick="openMenu('menuCounter', this)">🔢<span>Score</span></button>
         <button class="menuBtn" onclick="openMenu('menuTimer', this)">⏱<span>Timer</span></button>
         <button class="menuBtn" onclick="openMenu('menuAction', this)">🚨<span>Action</span></button>
-        <button class="menuBtn" onclick="openMenu('menuMatchGroup', this)">🏆<span>Match</span></button>
-        <button class="menuBtn" onclick="openMenu('menuSettingGroup', this)">⚙<span>Admin</span></button>
+        <button class="menuBtn adminOnly" onclick="openMenu('menuMatchGroup', this)">🏆<span>Match</span></button>
+        <button class="menuBtn adminOnly" onclick="openMenu('menuSettingGroup', this)">⚙<span>Admin</span></button>
       </div>
 
       <div class="menuContent">
@@ -254,6 +283,10 @@
           <div class="card">
             <h2>⏱ Timer Pertandingan</h2>
             <div class="scorebox" id="timerControl">00:00</div>
+            <select id="timerMode">
+              <option value="stopwatch">Stopwatch / Naik</option>
+              <option value="countdown">Countdown / Mundur</option>
+            </select>
             <input id="timerMinutes" type="number" value="10" min="0" placeholder="Menit">
             <div class="grid">
               <button class="green" onclick="timerStart()">▶ Start</button>
@@ -268,12 +301,12 @@
           <div class="card">
             <h2>Action Wasit</h2>
             <div class="grid">
-              <button class="red" onclick="resetScore()">Reset Score</button>
+              <button class="red dangerAdmin" onclick="resetScore()">Reset Score</button>
               <button class="yellow" onclick="sendBuzzer()">Buzzer</button>
-              <button class="green" onclick="saveHistory()">Simpan History</button>
-              <button class="green" onclick="updateActiveBracketWinner()">Update Winner Bagan</button>
-              <button class="purple" onclick="newMatch()">Match Baru</button>
-              <button class="gray" onclick="resetSetSportMatch()">Reset Set/Babak</button>
+              <button class="green dangerAdmin" onclick="saveHistory()">Simpan History</button>
+              <button class="green dangerAdmin" onclick="updateActiveBracketWinner()">Update Winner Bagan</button>
+              <button class="purple dangerAdmin" onclick="newMatch()">Match Baru</button>
+              <button class="gray dangerAdmin" onclick="resetSetSportMatch()">Reset Set/Babak</button>
             </div>
           </div>
         </section>
@@ -371,6 +404,16 @@
                 <button class="red" onclick="clearTournament()">Hapus Bagan</button>
                 <button class="gray" onclick="clearTournamentEntries()">Hapus Peserta</button>
               </div>
+              <hr style="border-color:#334155;margin:14px 0">
+              <h3>Import / Export Peserta</h3>
+              <textarea id="tournamentImportText" placeholder='Tempel JSON peserta di sini untuk import'></textarea>
+              <div class="grid">
+                <button class="green" onclick="exportTournamentData()">Export ke Text</button>
+                <button class="purple" onclick="importTournamentData()">Import dari Text</button>
+                <button class="gray" onclick="downloadTournamentBackup()">Download Backup</button>
+                <button class="yellow" onclick="document.getElementById('tournamentFileInput').click()">Upload File</button>
+              </div>
+              <input id="tournamentFileInput" type="file" accept="application/json,.json" style="display:none" onchange="loadTournamentFile(event)">
             </div>
 
             <div class="card">
@@ -390,6 +433,10 @@
           <div class="subMenu">
             <button class="subBtn active" onclick="openSubMenu('subPassword', this)">Password</button>
             <button class="subBtn" onclick="openSubMenu('subHistory', this)">History</button>
+            <button class="subBtn" onclick="openSubMenu('subMode', this)">Mode</button>
+            <button class="subBtn" onclick="openSubMenu('subOperators', this)">Operator</button>
+            <button class="subBtn" onclick="openSubMenu('subSound', this)">Sound</button>
+            <button class="subBtn" onclick="openSubMenu('subTvVisual', this)">TV</button>
           </div>
 
           <div id="subPassword" class="subPanel active">
@@ -412,6 +459,72 @@
               <div id="history"></div>
             </div>
           </div>
+
+          <div id="subMode" class="subPanel">
+            <div class="card">
+              <h2>Mode Normal / Operator Aman</h2>
+              <p class="small">Mode Operator Aman menyembunyikan menu setting, match, history, reset besar, dan hanya menyisakan kontrol score/timer/buzzer.</p>
+              <div class="grid">
+                <button class="green" onclick="enableOperatorSafeMode()">Aktifkan Operator Aman</button>
+                <button class="gray" onclick="disableOperatorSafeModePrompt()">Matikan Operator Aman</button>
+                <button class="purple" onclick="setDisplayTvMode()">Paksa TV Display</button>
+                <button class="green" onclick="setApkPhoneControlMode()">Paksa HP Control</button>
+                <button class="yellow" onclick="clearModeForce()">Mode Normal / Reset Mode</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="subOperators" class="subPanel">
+            <div class="card">
+              <h2>Kelola Operator Aman</h2>
+              <p class="small">Operator punya password sendiri. Saat login, operator hanya bisa akses score, timer, dan buzzer. Admin tetap punya akses penuh.</p>
+              <div class="formRow">
+                <input id="operatorNameInput" placeholder="Nama operator / wasit">
+                <input id="operatorPassInput" placeholder="Password operator">
+              </div>
+              <button class="green" onclick="addOperatorAccount()">Tambah Operator</button>
+              <div id="operatorList"></div>
+            </div>
+          </div>
+
+          <div id="subSound" class="subPanel">
+            <div class="card">
+              <h2>Setting Sound / Voice</h2>
+              <select id="settingVoiceEnabled">
+                <option value="1">Voice ON</option>
+                <option value="0">Voice OFF</option>
+              </select>
+              <select id="settingVoiceScore">
+                <option value="1">Baca Score ON</option>
+                <option value="0">Baca Score OFF</option>
+              </select>
+              <select id="settingVoiceStatus">
+                <option value="1">Baca Status Point ON</option>
+                <option value="0">Baca Status Point OFF</option>
+              </select>
+              <div class="formRow">
+                <input id="settingVoiceRate" type="number" min="0.6" max="1.4" step="0.05" placeholder="Speed voice 0.95">
+                <input id="settingVoiceDelay" type="number" min="0" max="3000" step="100" placeholder="Delay voice ms">
+              </div>
+              <input id="settingBuzzerVolume" type="number" min="0" max="1" step="0.05" placeholder="Volume buzzer 0 - 1">
+              <div class="grid">
+                <button class="green" onclick="saveSoundSettings()">Simpan Sound</button>
+                <button class="yellow" onclick="testSoundSettings()">Test Voice & Buzzer</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="subTvVisual" class="subPanel">
+            <div class="card">
+              <h2>Sponsor & Running Text TV</h2>
+              <input id="sponsorLeft" placeholder="Sponsor kiri / nama perusahaan">
+              <input id="sponsorLogoLeft" placeholder="URL logo sponsor kiri">
+              <input id="sponsorRight" placeholder="Sponsor kanan / nama perusahaan">
+              <input id="sponsorLogoRight" placeholder="URL logo sponsor kanan">
+              <textarea id="runningText" placeholder="Running text bawah TV"></textarea>
+              <button class="purple" onclick="saveTvVisualSettings()">Update Tampilan TV</button>
+            </div>
+          </div>
         </section>
       </div>
     </div>
@@ -425,6 +538,10 @@
   <div class="top">
     <div class="event" id="displayEventName">TURNAMEN SCOREBOARD</div>
     <div class="info"><span id="displayMode">BADMINTON</span> • <span id="displayPeriod">BABAK 1</span></div>
+  </div>
+  <div class="tvSponsorBar">
+    <div class="sponsorBox"><img id="displaySponsorLogoLeft" class="sponsorLogo"><span id="displaySponsorLeft"></span></div>
+    <div class="sponsorBox"><span id="displaySponsorRight"></span><img id="displaySponsorLogoRight" class="sponsorLogo"></div>
   </div>
   <div class="board">
     <div class="team" id="panelA">
@@ -449,6 +566,7 @@
   <div class="bottom">
     <div class="pill" id="displayStatus">● ONLINE</div>
     <div class="pill">☁ SYNC</div>
+    <div class="runningTextWrap"><div class="runningText" id="displayRunningText"></div></div>
   </div>
 </div>
 
@@ -493,12 +611,31 @@ const DEFAULT_STATE = {
   timer_seconds:0,
   timer_running:false,
   timer_started_at:0,
+  timer_mode:"stopwatch",
+  voice_enabled:false,
+  voice_score_enabled:true,
+  voice_status_enabled:true,
+  voice_rate:0.95,
+  voice_pitch:1,
+  voice_delay_ms:0,
+  buzzer_volume:0.12,
+  sponsor_left:"",
+  sponsor_right:"",
+  sponsor_logo_left:"",
+  sponsor_logo_right:"",
+  running_text:"",
+  operator_safe_mode:false,
+  operators:[{id:"op1", name:"Operator 1", password:"op123", active:true}],
+  auto_bracket_winner:true,
   buzzer_id:0,
   admin_password:"admin123"
 };
 
 let app, db, currentState = {...DEFAULT_STATE};
 let adminOK = sessionStorage.getItem('scoreboard_admin_ok') === '1';
+let operatorOK = sessionStorage.getItem('scoreboard_operator_ok') === '1';
+let currentOperatorId = sessionStorage.getItem('scoreboard_operator_id') || '';
+let currentOperatorName = sessionStorage.getItem('scoreboard_operator_name') || '';
 let lastBuzzer = 0;
 let audioCtx = null;
 const DEFAULT_FIREBASE_CONFIG = {
@@ -564,7 +701,7 @@ window.setDisplayTvMode = function(){
 window.clearModeForce = function(){
   localStorage.removeItem("scoreboard_force_phone_control");
   localStorage.removeItem("scoreboard_force_display");
-  location.reload();
+  location.href = location.pathname;
 }
 
 function $(id){ return document.getElementById(id); }
@@ -658,6 +795,15 @@ function restoreUiSession(){
   try{
     if(sessionStorage.getItem("scoreboard_admin_ok") === "1"){
       adminOK = true;
+      operatorOK = false;
+      const panel = $("adminPanel");
+      const login = $("loginCard");
+      if(panel) panel.classList.remove("hidden");
+      if(login) login.classList.add("hidden");
+    }else if(sessionStorage.getItem("scoreboard_operator_ok") === "1"){
+      operatorOK = true;
+      currentOperatorId = sessionStorage.getItem("scoreboard_operator_id") || "";
+      currentOperatorName = sessionStorage.getItem("scoreboard_operator_name") || "Operator";
       const panel = $("adminPanel");
       const login = $("loginCard");
       if(panel) panel.classList.remove("hidden");
@@ -828,8 +974,11 @@ function nowSec(){ return Math.floor(Date.now()/1000); }
 
 function timerValue(s){
   let seconds = Number(s.timer_seconds || 0);
-  if(s.timer_running && s.timer_started_at){
-    seconds += nowSec() - Number(s.timer_started_at || nowSec());
+  const elapsed = (s.timer_running && s.timer_started_at) ? (nowSec() - Number(s.timer_started_at || nowSec())) : 0;
+  if(String(s.timer_mode || "stopwatch") === "countdown"){
+    seconds = seconds - elapsed;
+  }else{
+    seconds = seconds + elapsed;
   }
   return Math.max(0, seconds);
 }
@@ -839,6 +988,73 @@ function formatTime(sec){
   const m = Math.floor(sec / 60).toString().padStart(2,"0");
   const s = Math.floor(sec % 60).toString().padStart(2,"0");
   return `${m}:${s}`;
+}
+
+function boolVal(v){ return v === true || v === 1 || v === "1" || v === "true"; }
+function normalizeText(v){ return String(v || "").trim().replace(/\s+/g," ").toLowerCase(); }
+function isOperatorSafe(){ return boolVal(currentState.operator_safe_mode); }
+
+function renderOperatorMode(){
+  const safe = isOperatorSafe() || operatorOK;
+  document.body.classList.toggle("operatorSafe", safe);
+  const badge = $("operatorModeBadge");
+  if(badge){
+    badge.style.display = safe ? "inline-block" : "none";
+    badge.innerText = operatorOK ? `MODE OPERATOR: ${currentOperatorName || "OPERATOR"}` : "MODE OPERATOR AMAN";
+  }
+  const exit = $("exitOperatorLink");
+  if(exit) exit.style.display = safe ? "inline" : "none";
+  if(safe){
+    const active = document.querySelector(".menuSection.active");
+    if(active && ["menuMatchGroup","menuSettingGroup"].includes(active.id)){
+      openMenu("menuCounter", document.querySelector(".menuBtn"));
+    }
+  }
+}
+
+function getOperators(){
+  const list = Array.isArray(currentState.operators) ? currentState.operators : [];
+  return list.length ? list : DEFAULT_STATE.operators;
+}
+
+function saveOperators(list){
+  return update(ref(db, "scoreboard/state"), {operators:list});
+}
+
+function renderOperatorLoginOptions(){
+  const sel = $("operatorLoginName");
+  if(!sel) return;
+  const ops = getOperators().filter(op => op && op.active !== false);
+  const current = sel.value;
+  sel.innerHTML = ops.map(op => `<option value="${op.id}">${op.name || "Operator"}</option>`).join("");
+  if(current && ops.some(op => op.id === current)) sel.value = current;
+}
+
+function renderOperatorList(){
+  const box = $("operatorList");
+  if(!box) return;
+  const ops = getOperators();
+  if(!ops.length){
+    box.innerHTML = `<div class="small">Belum ada operator.</div>`;
+    return;
+  }
+  box.innerHTML = ops.map(op => `
+    <div class="operatorRow">
+      <div>
+        <div class="opName">${op.name || "Operator"}</div>
+        <div class="opMeta">ID: ${op.id} • Status: ${op.active === false ? "Nonaktif" : "Aktif"}</div>
+      </div>
+      <div class="operatorActions">
+        <button class="yellow" onclick="editOperatorAccount('${op.id}')">Edit</button>
+        <button class="gray" onclick="toggleOperatorAccount('${op.id}')">${op.active === false ? "Aktifkan" : "Nonaktif"}</button>
+        <button class="red" onclick="deleteOperatorAccount('${op.id}')">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function makeOperatorId(){
+  return "op" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 }
 
 
@@ -1063,6 +1279,9 @@ async function applySetSportScore(team, delta){
   }
 
   await update(ref(db, "scoreboard/state"), patch);
+  if(patch.match_finished && currentState.active_match_id && boolVal(currentState.auto_bracket_winner)){
+    setTimeout(() => window.updateActiveBracketWinner(true), 600);
+  }
 }
 
 
@@ -1088,6 +1307,7 @@ async function applyBadmintonScore(team, delta){
 
 function renderAll(){
   const s = currentState;
+  if(boolVal(s.voice_enabled)) voiceEnabled = true;
   const t = formatTime(timerValue(s));
 
   if(!$("controlPage").classList.contains("hidden")){
@@ -1105,6 +1325,20 @@ function renderAll(){
     setInputValue("colorB", s.color_b);
     setInputValue("logoA", s.logo_a || "");
     setInputValue("logoB", s.logo_b || "");
+    setInputValue("timerMode", s.timer_mode || "stopwatch");
+    setInputValue("settingVoiceEnabled", boolVal(s.voice_enabled) ? "1" : "0");
+    setInputValue("settingVoiceScore", boolVal(s.voice_score_enabled) ? "1" : "0");
+    setInputValue("settingVoiceStatus", boolVal(s.voice_status_enabled) ? "1" : "0");
+    setInputValue("settingVoiceRate", s.voice_rate ?? 0.95);
+    setInputValue("settingVoiceDelay", s.voice_delay_ms ?? 0);
+    setInputValue("settingBuzzerVolume", s.buzzer_volume ?? 0.12);
+    setInputValue("sponsorLeft", s.sponsor_left || "");
+    setInputValue("sponsorRight", s.sponsor_right || "");
+    setInputValue("sponsorLogoLeft", s.sponsor_logo_left || "");
+    setInputValue("sponsorLogoRight", s.sponsor_logo_right || "");
+    setInputValue("runningText", s.running_text || "");
+    renderOperatorLoginOptions();
+    renderOperatorList();
     $("scoreA").innerText = s.score_a;
     $("scoreB").innerText = s.score_b;
     $("titleA").innerText = s.team_a;
@@ -1112,8 +1346,9 @@ function renderAll(){
     if($("setMiniA")) $("setMiniA").innerText = `Set menang: ${s.set_a || 0}`;
     if($("setMiniB")) $("setMiniB").innerText = `Set menang: ${s.set_b || 0}`;
     if($("matchInfoControl")) $("matchInfoControl").innerText = sportInfoText(s) || `${s.mode} • ${s.period}`;
-    $("timerControl").innerText = t;
+    $("timerControl").innerText = t + (String(s.timer_mode || "stopwatch") === "countdown" ? " ↓" : " ↑");
   }
+  renderOperatorMode();
 
   if(!$("displayPage").classList.contains("hidden")){
     $("displayEventName").innerText = s.event_name;
@@ -1136,6 +1371,14 @@ function renderAll(){
 
     if(s.logo_a){ $("displayLogoA").src = s.logo_a; $("displayLogoA").style.display = "block"; } else {$("displayLogoA").style.display = "none";}
     if(s.logo_b){ $("displayLogoB").src = s.logo_b; $("displayLogoB").style.display = "block"; } else {$("displayLogoB").style.display = "none";}
+
+    if($("displaySponsorLeft")) $("displaySponsorLeft").innerText = s.sponsor_left || "";
+    if($("displaySponsorRight")) $("displaySponsorRight").innerText = s.sponsor_right || "";
+    if($("displayRunningText")) $("displayRunningText").innerText = s.running_text || "";
+    if(s.sponsor_logo_left && $("displaySponsorLogoLeft")){ $("displaySponsorLogoLeft").src = s.sponsor_logo_left; $("displaySponsorLogoLeft").style.display = "block"; }
+    else if($("displaySponsorLogoLeft")){ $("displaySponsorLogoLeft").style.display = "none"; }
+    if(s.sponsor_logo_right && $("displaySponsorLogoRight")){ $("displaySponsorLogoRight").src = s.sponsor_logo_right; $("displaySponsorLogoRight").style.display = "block"; }
+    else if($("displaySponsorLogoRight")){ $("displaySponsorLogoRight").style.display = "none"; }
 
     if(Number(s.buzzer_id || 0) > lastBuzzer){
       lastBuzzer = Number(s.buzzer_id || 0);
@@ -1174,16 +1417,21 @@ function isMatchPoint(s){
 }
 
 function speakText(text){
-  if(!voiceEnabled) return;
+  const stateVoiceOn = boolVal(currentState.voice_enabled);
+  if(!voiceEnabled && !stateVoiceOn) return;
   if(!("speechSynthesis" in window)) return;
-  try{
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "id-ID";
-    u.rate = 0.95;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
-  }catch(e){}
+  const run = () => {
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "id-ID";
+      u.rate = Number(currentState.voice_rate || 0.95);
+      u.pitch = Number(currentState.voice_pitch || 1);
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  };
+  const delay = Number(currentState.voice_delay_ms || 0);
+  if(delay > 0) setTimeout(run, delay); else run();
 }
 
 function announceScoreIfChanged(s){
@@ -1206,11 +1454,12 @@ function announceScoreIfChanged(s){
   const status = getSetSportPointStatus(s);
   let text = "";
 
-  if(status){
-    text = `${status}. ${numberId(a, true)} ${numberId(b, true)}`;
-  }else{
+  if(status && boolVal(s.voice_status_enabled)){
+    text = `${status}. ${boolVal(s.voice_score_enabled) ? numberId(a, true) + " " + numberId(b, true) : ""}`;
+  }else if(boolVal(s.voice_score_enabled)){
     text = `${numberId(a, true)} ${numberId(b, true)}`;
   }
+  if(!text) return;
 
   speakText(text);
 }
@@ -1222,7 +1471,7 @@ function playBuzzer(){
     const gain = audioCtx.createGain();
     osc.type = "square";
     osc.frequency.value = 680;
-    gain.gain.value = 0.12;
+    gain.gain.value = Math.max(0, Math.min(1, Number(currentState.buzzer_volume ?? 0.12)));
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
@@ -1240,18 +1489,54 @@ function requireAdmin(){
   return true;
 }
 
-window.adminLogin = function(){
+function requireControl(){
+  if(adminOK || operatorOK) return true;
+  alert("Login admin atau operator dulu bro");
+  return false;
+}
+
+window.adminLogin = async function(){
   const pass = $("adminPassword").value;
   if(pass === currentState.admin_password){
     adminOK = true;
+    operatorOK = false;
+    currentOperatorId = "";
+    currentOperatorName = "";
     sessionStorage.setItem("scoreboard_admin_ok", "1");
+    sessionStorage.removeItem("scoreboard_operator_ok");
+    sessionStorage.removeItem("scoreboard_operator_id");
+    sessionStorage.removeItem("scoreboard_operator_name");
     $("adminPanel").classList.remove("hidden");
     const loginCard = $("loginCard");
     if(loginCard) loginCard.classList.add("hidden");
+    await update(ref(db, "scoreboard/state"), {operator_safe_mode:false});
     saveUiSession();
   }else{
-    alert("Password salah");
+    alert("Password admin salah");
   }
+}
+
+window.operatorLogin = async function(){
+  const id = $("operatorLoginName") ? $("operatorLoginName").value : "";
+  const pass = $("operatorPassword") ? $("operatorPassword").value : "";
+  const op = getOperators().find(x => x.id === id && x.active !== false);
+  if(!op) return alert("Operator tidak ditemukan / nonaktif");
+  if(pass !== op.password) return alert("Password operator salah");
+
+  adminOK = false;
+  operatorOK = true;
+  currentOperatorId = op.id;
+  currentOperatorName = op.name || "Operator";
+  sessionStorage.removeItem("scoreboard_admin_ok");
+  sessionStorage.setItem("scoreboard_operator_ok", "1");
+  sessionStorage.setItem("scoreboard_operator_id", currentOperatorId);
+  sessionStorage.setItem("scoreboard_operator_name", currentOperatorName);
+  $("adminPanel").classList.remove("hidden");
+  const loginCard = $("loginCard");
+  if(loginCard) loginCard.classList.add("hidden");
+  await update(ref(db, "scoreboard/state"), {operator_safe_mode:true});
+  openMenu("menuCounter", document.querySelector(".menuBtn"));
+  saveUiSession();
 }
 
 window.setMatch = function(){
@@ -1309,7 +1594,7 @@ window.setVisual = function(){
 }
 
 window.changeScore = async function(team, delta){
-  if(!requireAdmin()) return;
+  if(!requireControl()) return;
 
   if(isSetSportMode(currentState)){
     await applySetSportScore(team, delta);
@@ -1344,17 +1629,19 @@ window.resetSetSportMatch = async function(){
 }
 
 window.timerSet = function(){
-  if(!requireAdmin()) return;
+  if(!requireControl()) return;
   const minutes = Number($("timerMinutes").value || 0);
+  const mode = $("timerMode") ? $("timerMode").value : "stopwatch";
   update(ref(db, "scoreboard/state"), {
     timer_seconds: minutes * 60,
+    timer_mode:mode,
     timer_running:false,
     timer_started_at:0
   });
 }
 
 window.timerStart = function(){
-  if(!requireAdmin()) return;
+  if(!requireControl()) return;
   if(currentState.timer_running) return;
   update(ref(db, "scoreboard/state"), {
     timer_running:true,
@@ -1363,7 +1650,7 @@ window.timerStart = function(){
 }
 
 window.timerPause = function(){
-  if(!requireAdmin()) return;
+  if(!requireControl()) return;
   update(ref(db, "scoreboard/state"), {
     timer_seconds:timerValue(currentState),
     timer_running:false,
@@ -1372,7 +1659,7 @@ window.timerPause = function(){
 }
 
 window.timerReset = function(){
-  if(!requireAdmin()) return;
+  if(!requireControl()) return;
   update(ref(db, "scoreboard/state"), {
     timer_seconds:0,
     timer_running:false,
@@ -1381,7 +1668,7 @@ window.timerReset = function(){
 }
 
 window.sendBuzzer = function(){
-  if(!requireAdmin()) return;
+  if(!requireControl()) return;
   update(ref(db, "scoreboard/state"), {
     buzzer_id:Date.now()
   });
@@ -1461,14 +1748,33 @@ window.newMatch = async function(){
     admin_password:currentState.admin_password,
     tournament_entries:currentState.tournament_entries || [],
     tournament_matches:currentState.tournament_matches || [],
-    tournament_note:currentState.tournament_note || ""
+    tournament_note:currentState.tournament_note || "",
+    sponsor_left:currentState.sponsor_left || "",
+    sponsor_right:currentState.sponsor_right || "",
+    sponsor_logo_left:currentState.sponsor_logo_left || "",
+    sponsor_logo_right:currentState.sponsor_logo_right || "",
+    running_text:currentState.running_text || "",
+    voice_enabled:currentState.voice_enabled || false,
+    voice_score_enabled:currentState.voice_score_enabled ?? true,
+    voice_status_enabled:currentState.voice_status_enabled ?? true,
+    voice_rate:currentState.voice_rate || 0.95,
+    voice_delay_ms:currentState.voice_delay_ms || 0,
+    buzzer_volume:currentState.buzzer_volume ?? 0.12,
+    operator_safe_mode:currentState.operator_safe_mode || false,
+    operators:getOperators()
   });
 }
 
 
 window.logoutAdmin = function(){
   adminOK = false;
+  operatorOK = false;
+  currentOperatorId = "";
+  currentOperatorName = "";
   sessionStorage.removeItem("scoreboard_admin_ok");
+  sessionStorage.removeItem("scoreboard_operator_ok");
+  sessionStorage.removeItem("scoreboard_operator_id");
+  sessionStorage.removeItem("scoreboard_operator_name");
   sessionStorage.removeItem("scoreboard_active_menu");
   Object.keys(sessionStorage).forEach(k => {
     if(k.startsWith("scoreboard_active_sub_")) sessionStorage.removeItem(k);
@@ -1479,6 +1785,61 @@ window.logoutAdmin = function(){
   alert("Admin logout");
 }
 
+window.enableOperatorSafeMode = async function(){
+  if(!requireAdmin()) return;
+  await update(ref(db, "scoreboard/state"), {operator_safe_mode:true});
+  alert("Mode Operator Aman aktif");
+}
+
+window.disableOperatorSafeModePrompt = async function(){
+  const pass = prompt("Masukkan password admin untuk keluar dari Mode Operator Aman:");
+  if(pass === null) return;
+  if(pass !== currentState.admin_password) return alert("Password salah");
+  adminOK = true;
+  operatorOK = false;
+  currentOperatorId = "";
+  currentOperatorName = "";
+  sessionStorage.setItem("scoreboard_admin_ok", "1");
+  sessionStorage.removeItem("scoreboard_operator_ok");
+  sessionStorage.removeItem("scoreboard_operator_id");
+  sessionStorage.removeItem("scoreboard_operator_name");
+  await update(ref(db, "scoreboard/state"), {operator_safe_mode:false});
+  alert("Mode Operator Aman dimatikan");
+}
+
+window.saveSoundSettings = async function(){
+  if(!requireAdmin()) return;
+  await update(ref(db, "scoreboard/state"), {
+    voice_enabled:$("settingVoiceEnabled").value === "1",
+    voice_score_enabled:$("settingVoiceScore").value === "1",
+    voice_status_enabled:$("settingVoiceStatus").value === "1",
+    voice_rate:Number($("settingVoiceRate").value || 0.95),
+    voice_delay_ms:Number($("settingVoiceDelay").value || 0),
+    buzzer_volume:Number($("settingBuzzerVolume").value || 0.12)
+  });
+  voiceEnabled = $("settingVoiceEnabled").value === "1";
+  localStorage.setItem("scoreboard_voice_enabled", voiceEnabled ? "1" : "0");
+  alert("Setting sound disimpan");
+}
+
+window.testSoundSettings = function(){
+  voiceEnabled = true;
+  speakText("Test suara scoreboard. Satu kosong. Match point team A.");
+  setTimeout(playBuzzer, 700);
+}
+
+window.saveTvVisualSettings = async function(){
+  if(!requireAdmin()) return;
+  await update(ref(db, "scoreboard/state"), {
+    sponsor_left:$("sponsorLeft").value.trim(),
+    sponsor_right:$("sponsorRight").value.trim(),
+    sponsor_logo_left:$("sponsorLogoLeft").value.trim(),
+    sponsor_logo_right:$("sponsorLogoRight").value.trim(),
+    running_text:$("runningText").value.trim()
+  });
+  alert("Sponsor dan running text TV sudah diupdate");
+}
+
 window.changePassword = function(){
   if(!requireAdmin()) return;
   const pass = $("newAdminPassword").value.trim();
@@ -1486,6 +1847,63 @@ window.changePassword = function(){
   update(ref(db, "scoreboard/state"), {admin_password:pass});
   $("newAdminPassword").value = "";
   alert("Password admin sudah diganti");
+}
+
+window.addOperatorAccount = async function(){
+  if(!requireAdmin()) return;
+  const name = ($("operatorNameInput")?.value || "").trim();
+  const password = ($("operatorPassInput")?.value || "").trim();
+  if(!name) return alert("Nama operator wajib diisi");
+  if(password.length < 4) return alert("Password operator minimal 4 karakter");
+  const ops = getOperators();
+  if(ops.some(op => normalizeText(op.name) === normalizeText(name))){
+    return alert("Nama operator sudah ada");
+  }
+  ops.push({id:makeOperatorId(), name, password, active:true});
+  await saveOperators(ops);
+  $("operatorNameInput").value = "";
+  $("operatorPassInput").value = "";
+  alert("Operator berhasil ditambahkan");
+}
+
+window.editOperatorAccount = async function(id){
+  if(!requireAdmin()) return;
+  const ops = getOperators();
+  const op = ops.find(x => x.id === id);
+  if(!op) return alert("Operator tidak ditemukan");
+  const name = prompt("Nama operator:", op.name || "");
+  if(name === null) return;
+  const password = prompt("Password operator:", op.password || "");
+  if(password === null) return;
+  const cleanName = name.trim();
+  const cleanPass = password.trim();
+  if(!cleanName) return alert("Nama operator wajib diisi");
+  if(cleanPass.length < 4) return alert("Password operator minimal 4 karakter");
+  if(ops.some(x => x.id !== id && normalizeText(x.name) === normalizeText(cleanName))){
+    return alert("Nama operator sudah dipakai");
+  }
+  op.name = cleanName;
+  op.password = cleanPass;
+  await saveOperators(ops);
+  alert("Operator berhasil diedit");
+}
+
+window.toggleOperatorAccount = async function(id){
+  if(!requireAdmin()) return;
+  const ops = getOperators();
+  const op = ops.find(x => x.id === id);
+  if(!op) return alert("Operator tidak ditemukan");
+  op.active = op.active === false ? true : false;
+  await saveOperators(ops);
+}
+
+window.deleteOperatorAccount = async function(id){
+  if(!requireAdmin()) return;
+  const ops = getOperators();
+  const op = ops.find(x => x.id === id);
+  if(!op) return alert("Operator tidak ditemukan");
+  if(!confirm(`Hapus operator ${op.name}?`)) return;
+  await saveOperators(ops.filter(x => x.id !== id));
 }
 
 window.clearHistory = async function(){
@@ -1499,7 +1917,7 @@ window.resetAllData = async function(){
   if(!requireAdmin()) return;
   if(!confirm("Reset semua data scoreboard? Score, team, pemain, timer, warna, logo akan kembali default.")) return;
   const keepPassword = currentState.admin_password || DEFAULT_STATE.admin_password;
-  await set(ref(db, "scoreboard/state"), {...DEFAULT_STATE, admin_password:keepPassword});
+  await set(ref(db, "scoreboard/state"), {...DEFAULT_STATE, admin_password:keepPassword, operators:getOperators()});
   await remove(ref(db, "scoreboard/history"));
   alert("Semua data berhasil direset");
 }
@@ -1598,6 +2016,8 @@ window.addTournamentEntry = async function(){
   if(!player1) return alert("Nama pemain 1 wajib diisi");
 
   const entries = Array.isArray(currentState.tournament_entries) ? [...currentState.tournament_entries] : [];
+  const duplicate = entries.some(e => normalizeText(e.team) === normalizeText(team) && normalizeText(e.player1) === normalizeText(player1) && normalizeText(e.player2) === normalizeText(player2));
+  if(duplicate) return alert("Peserta duplikat. Team dan nama pemain sudah ada di daftar.");
   entries.push({
     id:"E" + Date.now() + Math.floor(Math.random()*999),
     team,
@@ -1637,6 +2057,10 @@ window.editTournamentEntry = async function(id){
   const logo = prompt("URL Logo:", e.logo || "");
   if(logo === null) return;
 
+  if(!team.trim()) return alert("Nama team/club wajib diisi");
+  if(!p1.trim()) return alert("Nama pemain 1 wajib diisi");
+  const duplicate = entries.some((x, i) => i !== idx && normalizeText(x.team) === normalizeText(team) && normalizeText(x.player1) === normalizeText(p1) && normalizeText(x.player2) === normalizeText(p2));
+  if(duplicate) return alert("Peserta duplikat. Team dan nama pemain sudah ada di daftar.");
   entries[idx] = {...e, team:team.trim(), player1:p1.trim(), player2:p2.trim(), logo:logo.trim()};
   await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
 }
@@ -1645,6 +2069,14 @@ window.generateTournamentBracket = async function(){
   if(!requireAdmin()) return;
   const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
   if(entries.length < 2) return alert("Minimal 2 peserta untuk membuat bagan");
+  const invalid = entries.find(e => !String(e.team || "").trim() || !String(e.player1 || "").trim());
+  if(invalid) return alert("Masih ada peserta dengan nama team atau pemain 1 kosong.");
+  const seen = new Set();
+  for(const e of entries){
+    const key = [e.team, e.player1, e.player2].map(normalizeText).join("|");
+    if(seen.has(key)) return alert("Masih ada peserta duplikat. Hapus/edit dulu sebelum generate bagan.");
+    seen.add(key);
+  }
   if(currentState.tournament_matches && currentState.tournament_matches.length){
     if(!confirm("Bagan lama akan diganti dari awal. Lanjut?")) return;
   }
@@ -1742,13 +2174,96 @@ window.generateNextRound = async function(){
   alert(note);
 }
 
+function tournamentBackupObject(){
+  return {
+    exported_at:new Date().toISOString(),
+    tournament_entries:currentState.tournament_entries || [],
+    tournament_matches:currentState.tournament_matches || [],
+    tournament_note:currentState.tournament_note || "",
+    tournament_view_mode:currentState.tournament_view_mode || "list"
+  };
+}
+
+window.exportTournamentData = function(){
+  const txt = JSON.stringify(tournamentBackupObject(), null, 2);
+  const box = $("tournamentImportText");
+  if(box){ box.value = txt; box.focus(); box.select(); }
+}
+
+window.downloadTournamentBackup = function(){
+  const blob = new Blob([JSON.stringify(tournamentBackupObject(), null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "backup-peserta-turnamen-scoreboard.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function parseTournamentImport(raw){
+  const data = JSON.parse(raw);
+  const entries = Array.isArray(data) ? data : (data.tournament_entries || data.entries || []);
+  if(!Array.isArray(entries) || entries.length < 1) throw new Error("JSON tidak berisi tournament_entries");
+  const clean = entries.map((e, i) => ({
+    id:e.id || ("E" + Date.now() + "_" + i),
+    team:String(e.team || e.club || "").trim(),
+    player1:String(e.player1 || e.pemain1 || e.name || "").trim(),
+    player2:String(e.player2 || e.pemain2 || "").trim(),
+    color:e.color || "#2563eb",
+    logo:String(e.logo || "").trim()
+  }));
+  const seen = new Set();
+  for(const e of clean){
+    if(!e.team || !e.player1) throw new Error("Ada peserta dengan team atau pemain 1 kosong");
+    const key = [e.team,e.player1,e.player2].map(normalizeText).join("|");
+    if(seen.has(key)) throw new Error("Ada peserta duplikat di file import");
+    seen.add(key);
+  }
+  return {
+    entries:clean,
+    matches:Array.isArray(data.tournament_matches) ? data.tournament_matches : [],
+    note:data.tournament_note || "Data peserta berhasil diimport",
+    view:data.tournament_view_mode || "list"
+  };
+}
+
+window.importTournamentData = async function(){
+  if(!requireAdmin()) return;
+  try{
+    const raw = $("tournamentImportText").value.trim();
+    if(!raw) return alert("Tempel JSON peserta dulu");
+    const parsed = parseTournamentImport(raw);
+    if(!confirm(`Import ${parsed.entries.length} peserta? Bagan lama akan diganti sesuai data import.`)) return;
+    await update(ref(db, "scoreboard/state"), {
+      tournament_entries:parsed.entries,
+      tournament_matches:parsed.matches,
+      tournament_note:parsed.note,
+      tournament_view_mode:parsed.view,
+      active_match_id:""
+    });
+    alert("Import berhasil");
+  }catch(e){
+    alert("Import gagal: " + e.message);
+  }
+}
+
+window.loadTournamentFile = function(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const box = $("tournamentImportText");
+    if(box) box.value = reader.result;
+  };
+  reader.readAsText(file);
+}
+
 window.clearTournament = async function(){
   if(!requireAdmin()) return;
   if(!confirm("Hapus bagan pertandingan? Daftar peserta tetap disimpan.")) return;
   await update(ref(db, "scoreboard/state"), {
     tournament_matches:[],
     tournament_note:"",
-  tournament_view_mode:"list",
+    tournament_view_mode:"list",
     active_match_id:""
   });
 }
@@ -1760,7 +2275,7 @@ window.clearTournamentEntries = async function(){
     tournament_entries:[],
     tournament_matches:[],
     tournament_note:"",
-  tournament_view_mode:"list",
+    tournament_view_mode:"list",
     active_match_id:""
   });
 }
@@ -1827,18 +2342,21 @@ window.setManualBracketWinner = async function(matchId, side){
   await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
 }
 
-window.updateActiveBracketWinner = async function(){
-  if(!requireAdmin()) return;
+window.updateActiveBracketWinner = async function(silent=false){
+  if(!silent && !requireAdmin()) return;
 
   const matchId = currentState.active_match_id;
-  if(!matchId) return alert("Belum ada match dari bagan yang aktif");
+  if(!matchId) return silent ? false : alert("Belum ada match dari bagan yang aktif");
   if(!currentState.match_finished || !currentState.match_winner){
-    return alert("Match belum selesai. Winner bagan bisa diupdate setelah match selesai.");
+    return silent ? false : alert("Match belum selesai. Winner bagan bisa diupdate setelah match selesai.");
   }
 
   const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
   const idx = matches.findIndex(m => m.id === matchId);
-  if(idx < 0) return alert("Match aktif tidak ditemukan di bagan");
+  if(idx < 0) return silent ? false : alert("Match aktif tidak ditemukan di bagan");
+  if(matches[idx].winner){
+    return silent ? true : alert("Winner bagan untuk match ini sudah terisi.");
+  }
 
   matches[idx] = {
     ...matches[idx],
@@ -1850,7 +2368,8 @@ window.updateActiveBracketWinner = async function(){
   };
 
   await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
-  alert("Winner berhasil diupdate ke bagan. Jika semua match ronde ini selesai, klik Generate Ronde Berikutnya.");
+  if(!silent) alert("Winner berhasil diupdate ke bagan. Jika semua match ronde ini selesai, klik Generate Ronde Berikutnya.");
+  return true;
 }
 
 
