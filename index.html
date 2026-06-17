@@ -87,8 +87,10 @@
     .landscapeLockBtn{background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:12px;padding:9px 12px;width:auto;font-size:12px;margin:0}
     @media(max-width:899px) and (orientation:portrait){
       body.scoreLandscapeRequired #rotateHint{display:flex}
+      body.scoreLandscapeRequired #exitLandscapeBtn{display:block!important}
     }
     @media(max-width:899px) and (orientation:landscape){
+      body.scoreLandscapeRequired #exitLandscapeBtn{display:block!important}
       body.scoreLandscapeRequired .controlHeaderMini{display:none}
       body.scoreLandscapeRequired .menuWrap{padding-bottom:0}
       body.scoreLandscapeRequired .menuList{display:none}
@@ -148,6 +150,7 @@
   </style>
 </head>
 <body>
+<button id="exitLandscapeBtn" onclick="disableCounterLandscapeMode()" style="display:none;position:fixed;top:8px;left:8px;z-index:10000;width:auto;padding:8px 12px;border-radius:999px;background:#dc2626;color:white;font-size:12px">Keluar Landscape</button>
 <div id="rotateHint" class="rotateHint">
   <div class="rotateHintBox">
     <div class="rotateIcon">📱↔️</div>
@@ -180,9 +183,13 @@
     </div>
     <p class="small">
       Setelah config disimpan, gunakan URL:
-      <br><b>?display=1</b> untuk TV Display
-      <br><b>?control=1</b> untuk HP Controller
+      <br><b>?display=1&forceDisplay=1</b> untuk TV Display
+      <br><b>?control=1&forceControl=1</b> untuk HP Controller
     </p>
+    <div class="grid">
+      <button class="purple" onclick="setDisplayTvMode()">Paksa Mode TV Display</button>
+      <button class="green" onclick="setApkPhoneControlMode()">Paksa Mode HP Control</button>
+    </div>
   </div>
 </div>
 
@@ -190,10 +197,10 @@
   <div class="controlHeaderMini">
     <div>
       <h1>Scoreboard Control</h1>
-      <div class="small">HP Wasit / Admin</div>
+      <div class="small">HP Wasit / Admin</div><div class="small">Mode APK HP Control aktif</div>
     </div>
     <div>
-      <a href="?display=1" target="_blank">TV</a> |
+      <a href="?display=1&forceDisplay=1" target="_blank">TV</a> |
       <a href="javascript:showSetup()">Setup</a>
     </div>
   </div>
@@ -390,6 +397,7 @@
               <h2>Ganti Password Admin</h2>
               <input id="newAdminPassword" placeholder="Password baru">
               <button class="gray" onclick="changePassword()">Ganti Password</button>
+              <button class="red" onclick="logoutAdmin()">Logout Admin</button>
             </div>
           </div>
 
@@ -490,7 +498,7 @@ const DEFAULT_STATE = {
 };
 
 let app, db, currentState = {...DEFAULT_STATE};
-let adminOK = false;
+let adminOK = sessionStorage.getItem('scoreboard_admin_ok') === '1';
 let lastBuzzer = 0;
 let audioCtx = null;
 const DEFAULT_FIREBASE_CONFIG = {
@@ -508,8 +516,56 @@ let prevScoreA = null;
 let prevScoreB = null;
 
 const qs = new URLSearchParams(location.search);
-const isControl = qs.has("control");
-const isDisplay = qs.has("display");
+
+// MODE DETECTION FIX:
+// HP / layar kecil default = CONTROL.
+// TV / tablet besar default = DISPLAY.
+// Paksa HP control: ?control=1&forceControl=1
+// Paksa TV display: ?display=1&forceDisplay=1
+const forceDisplayMode = qs.has("forceDisplay") || qs.has("tv") || localStorage.getItem("scoreboard_force_display") === "1";
+const apkForceControl = qs.has("forceControl") || localStorage.getItem("scoreboard_force_phone_control") === "1";
+const phoneLikeDevice = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) < 700;
+const largeDisplayDevice = Math.max(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) >= 900;
+
+let isControl = qs.has("control");
+let isDisplay = qs.has("display");
+
+// forceDisplay lebih tinggi prioritasnya untuk TV.
+if(forceDisplayMode){
+  isControl = false;
+  isDisplay = true;
+  localStorage.setItem("scoreboard_force_display", "1");
+  localStorage.removeItem("scoreboard_force_phone_control");
+}else if(phoneLikeDevice || apkForceControl){
+  isControl = true;
+  isDisplay = false;
+  localStorage.setItem("scoreboard_force_phone_control", "1");
+  localStorage.removeItem("scoreboard_force_display");
+}else if(largeDisplayDevice && !qs.has("control")){
+  isControl = false;
+  isDisplay = true;
+}else if(!isControl && !isDisplay){
+  isControl = true;
+  isDisplay = false;
+}
+
+window.setApkPhoneControlMode = function(){
+  localStorage.setItem("scoreboard_force_phone_control", "1");
+  localStorage.removeItem("scoreboard_force_display");
+  location.href = location.pathname + "?control=1&forceControl=1";
+}
+
+window.setDisplayTvMode = function(){
+  localStorage.setItem("scoreboard_force_display", "1");
+  localStorage.removeItem("scoreboard_force_phone_control");
+  location.href = location.pathname + "?display=1&forceDisplay=1";
+}
+
+window.clearModeForce = function(){
+  localStorage.removeItem("scoreboard_force_phone_control");
+  localStorage.removeItem("scoreboard_force_display");
+  location.reload();
+}
 
 function $(id){ return document.getElementById(id); }
 
@@ -538,6 +594,8 @@ function unlockOrientation(){
 }
 window.forceCounterLandscape = async function(){
   document.body.classList.add("scoreLandscapeRequired");
+  const exitBtn = $("exitLandscapeBtn");
+  if(exitBtn) exitBtn.style.display = "block";
   await requestAppFullscreen();
   const ok = await lockLandscape();
   const hint = $("rotateHint");
@@ -554,6 +612,8 @@ window.disableCounterLandscapeMode = function(){
   document.body.classList.remove("scoreLandscapeRequired");
   const hint = $("rotateHint");
   if(hint) hint.style.display = "";
+  const exitBtn = $("exitLandscapeBtn");
+  if(exitBtn) exitBtn.style.display = "none";
   unlockOrientation();
 }
 window.addEventListener("orientationchange", () => {
@@ -578,6 +638,74 @@ window.addEventListener("resize", () => {
 });
 
 
+
+function saveUiSession(){
+  try{
+    const activeMenu = document.querySelector(".menuSection.active");
+    if(activeMenu) sessionStorage.setItem("scoreboard_active_menu", activeMenu.id);
+
+    const activeBtnText = document.querySelector(".menuBtn.active span")?.innerText || "";
+    if(activeBtnText) sessionStorage.setItem("scoreboard_active_menu_text", activeBtnText);
+
+    document.querySelectorAll(".menuSection").forEach(section => {
+      const activeSub = section.querySelector(".subPanel.active");
+      if(activeSub) sessionStorage.setItem("scoreboard_active_sub_" + section.id, activeSub.id);
+    });
+  }catch(e){}
+}
+
+function restoreUiSession(){
+  try{
+    if(sessionStorage.getItem("scoreboard_admin_ok") === "1"){
+      adminOK = true;
+      const panel = $("adminPanel");
+      const login = $("loginCard");
+      if(panel) panel.classList.remove("hidden");
+      if(login) login.classList.add("hidden");
+    }
+
+    const menuId = sessionStorage.getItem("scoreboard_active_menu");
+    if(menuId && $(menuId)){
+      document.querySelectorAll(".menuSection").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".menuBtn").forEach(el => el.classList.remove("active"));
+      $(menuId).classList.add("active");
+
+      document.querySelectorAll(".menuBtn").forEach(btn => {
+        const onclick = btn.getAttribute("onclick") || "";
+        if(onclick.includes("'" + menuId + "'") || onclick.includes('"' + menuId + '"')){
+          btn.classList.add("active");
+        }
+      });
+    }
+
+    document.querySelectorAll(".menuSection").forEach(section => {
+      const subId = sessionStorage.getItem("scoreboard_active_sub_" + section.id);
+      if(subId && $(subId)){
+        section.querySelectorAll(".subPanel").forEach(el => el.classList.remove("active"));
+        section.querySelectorAll(".subBtn").forEach(el => el.classList.remove("active"));
+        $(subId).classList.add("active");
+
+        section.querySelectorAll(".subBtn").forEach(btn => {
+          const onclick = btn.getAttribute("onclick") || "";
+          if(onclick.includes("'" + subId + "'") || onclick.includes('"' + subId + '"')){
+            btn.classList.add("active");
+          }
+        });
+      }
+    });
+
+    // Jangan auto landscape lock setelah restore, supaya menu tidak hilang.
+    if(typeof disableCounterLandscapeMode === "function"){
+      disableCounterLandscapeMode();
+    }
+  }catch(e){}
+}
+
+window.addEventListener("beforeunload", saveUiSession);
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "hidden") saveUiSession();
+});
+
 function setInputValue(id, value){
   const el = $(id);
   if(!el) return;
@@ -593,11 +721,11 @@ window.openMenu = function(sectionId, btn){
   if(sec) sec.classList.add("active");
   if(btn) btn.classList.add("active");
 
-  if(sectionId === "menuCounter"){
-    enableCounterLandscapeMode();
-  }else{
+  // Menu tetap normal. Landscape counter hanya aktif jika tombol Landscape diklik manual.
+  if(sectionId !== "menuCounter"){
     disableCounterLandscapeMode();
   }
+  saveUiSession();
 }
 
 window.openSubMenu = function(panelId, btn){
@@ -608,6 +736,7 @@ window.openSubMenu = function(panelId, btn){
   const panel = document.getElementById(panelId);
   if(panel) panel.classList.add("active");
   if(btn) btn.classList.add("active");
+  saveUiSession();
 }
 
 function getConfig(){
@@ -622,7 +751,7 @@ window.saveConfig = function(){
   try{
     const cfg = JSON.parse($("firebaseConfigInput").value);
     localStorage.setItem("firebase_config", JSON.stringify(cfg));
-    location.href = isDisplay ? "?display=1" : "?control=1";
+    location.href = forceDisplayMode ? "?display=1&forceDisplay=1" : ((phoneLikeDevice || apkForceControl) ? "?control=1&forceControl=1" : (isDisplay ? "?display=1&forceDisplay=1" : "?control=1&forceControl=1"));
   }catch(e){
     alert("Config Firebase belum valid JSON");
   }
@@ -675,6 +804,7 @@ async function init(){
     onValue(ref(db, "scoreboard/state"), (snap) => {
       currentState = {...DEFAULT_STATE, ...(snap.val() || {})};
       renderAll();
+      restoreUiSession();
     });
 
     onValue(ref(db, "scoreboard/history"), (snap) => {
@@ -1114,9 +1244,11 @@ window.adminLogin = function(){
   const pass = $("adminPassword").value;
   if(pass === currentState.admin_password){
     adminOK = true;
+    sessionStorage.setItem("scoreboard_admin_ok", "1");
     $("adminPanel").classList.remove("hidden");
     const loginCard = $("loginCard");
     if(loginCard) loginCard.classList.add("hidden");
+    saveUiSession();
   }else{
     alert("Password salah");
   }
@@ -1331,6 +1463,20 @@ window.newMatch = async function(){
     tournament_matches:currentState.tournament_matches || [],
     tournament_note:currentState.tournament_note || ""
   });
+}
+
+
+window.logoutAdmin = function(){
+  adminOK = false;
+  sessionStorage.removeItem("scoreboard_admin_ok");
+  sessionStorage.removeItem("scoreboard_active_menu");
+  Object.keys(sessionStorage).forEach(k => {
+    if(k.startsWith("scoreboard_active_sub_")) sessionStorage.removeItem(k);
+  });
+  $("adminPanel").classList.add("hidden");
+  const loginCard = $("loginCard");
+  if(loginCard) loginCard.classList.remove("hidden");
+  alert("Admin logout");
 }
 
 window.changePassword = function(){
@@ -1935,8 +2081,7 @@ window.editHistoryItem = async function(key){
 setInterval(renderAll, 500);
 setInterval(renderTournament, 1000);
 init();
-// counter_landscape_autostart
-setTimeout(()=>{ if(isControl && document.getElementById('menuCounter')?.classList.contains('active')) enableCounterLandscapeMode(); }, 1200);
+// counter_landscape_autostart disabled: supaya menu bawah tidak hilang setelah login
 </script>
 </body>
 </html>
