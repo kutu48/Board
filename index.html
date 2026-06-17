@@ -199,7 +199,7 @@
     </div>
     <p class="small">
       Setelah config disimpan, gunakan URL:
-      <br><b>?display=1&forceDisplay=1</b> untuk TV Display
+      <br><b>?display=1</b> untuk TV Display
       <br><b>?control=1&forceControl=1</b> untuk HP Controller
     </p>
     <div class="grid">
@@ -217,8 +217,10 @@
       <div class="small">HP Wasit / Admin</div><div class="small">Mode APK HP Control aktif</div><div id="operatorModeBadge" class="operatorBadge" style="display:none">MODE OPERATOR AMAN</div>
     </div>
     <div>
-      <a href="?display=1&forceDisplay=1" target="_blank">TV</a> |
-      <a href="javascript:showSetup()">Setup</a> | <a href="javascript:disableOperatorSafeModePrompt()" id="exitOperatorLink" style="display:none">Keluar Operator</a>
+      <a href="?display=1" target="_blank">TV</a> |
+      <a href="javascript:showSetup()">Setup</a> |
+      <a href="javascript:logoutControlSession()" id="topLogoutLink" style="display:none">Logout</a> |
+      <a href="javascript:disableOperatorSafeModePrompt()" id="exitOperatorLink" style="display:none">Keluar Mode Operator</a>
     </div>
   </div>
 
@@ -685,36 +687,26 @@ document.addEventListener("change", e => markDraftField(e.target));
 
 const qs = new URLSearchParams(location.search);
 
-// MODE DETECTION FIX:
-// HP / layar kecil default = CONTROL.
-// TV / tablet besar default = DISPLAY.
-// Paksa HP control: ?control=1&forceControl=1
-// Paksa TV display: ?display=1&forceDisplay=1
-const forceDisplayMode = qs.has("forceDisplay") || qs.has("tv") || localStorage.getItem("scoreboard_force_display") === "1";
-const apkForceControl = qs.has("forceControl") || localStorage.getItem("scoreboard_force_phone_control") === "1";
+// MODE DETECTION v6:
+// Default selalu CONTROL, supaya layar besar/laptop tidak otomatis jadi TV.
+// TV Display hanya aktif kalau user klik link TV atau buka URL ?display=1 / ?tv=1.
+// Tidak perlu login untuk mode TV. Login hanya untuk controller.
+const forceDisplayMode = qs.has("display") || qs.has("tv") || qs.has("forceDisplay");
+const apkForceControl = qs.has("control") || qs.has("forceControl") || localStorage.getItem("scoreboard_force_phone_control") === "1";
 const phoneLikeDevice = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) < 700;
-const largeDisplayDevice = Math.max(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) >= 900;
 
-let isControl = qs.has("control");
-let isDisplay = qs.has("display");
+let isDisplay = forceDisplayMode;
+let isControl = !isDisplay;
 
-// forceDisplay lebih tinggi prioritasnya untuk TV.
-if(forceDisplayMode){
-  isControl = false;
-  isDisplay = true;
-  localStorage.setItem("scoreboard_force_display", "1");
+if(isDisplay){
+  // Jangan simpan paksa TV ke localStorage, supaya tab berikutnya tidak nyangkut mode TV.
   localStorage.removeItem("scoreboard_force_phone_control");
-}else if(phoneLikeDevice || apkForceControl){
+  localStorage.removeItem("scoreboard_force_display");
+}else if(apkForceControl){
   isControl = true;
   isDisplay = false;
   localStorage.setItem("scoreboard_force_phone_control", "1");
   localStorage.removeItem("scoreboard_force_display");
-}else if(largeDisplayDevice && !qs.has("control")){
-  isControl = false;
-  isDisplay = true;
-}else if(!isControl && !isDisplay){
-  isControl = true;
-  isDisplay = false;
 }
 
 window.setApkPhoneControlMode = function(){
@@ -724,9 +716,10 @@ window.setApkPhoneControlMode = function(){
 }
 
 window.setDisplayTvMode = function(){
-  localStorage.setItem("scoreboard_force_display", "1");
+  // TV Display dibuka hanya karena user klik tombol/URL TV, bukan auto detect layar.
+  localStorage.removeItem("scoreboard_force_display");
   localStorage.removeItem("scoreboard_force_phone_control");
-  location.href = location.pathname + "?display=1&forceDisplay=1";
+  location.href = location.pathname + "?display=1";
 }
 
 window.clearModeForce = function(){
@@ -930,7 +923,7 @@ window.saveConfig = function(){
   try{
     const cfg = JSON.parse($("firebaseConfigInput").value);
     localStorage.setItem("firebase_config", JSON.stringify(cfg));
-    location.href = forceDisplayMode ? "?display=1&forceDisplay=1" : ((phoneLikeDevice || apkForceControl) ? "?control=1&forceControl=1" : (isDisplay ? "?display=1&forceDisplay=1" : "?control=1&forceControl=1"));
+    location.href = isDisplay ? "?display=1" : "?control=1&forceControl=1";
   }catch(e){
     alert("Config Firebase belum valid JSON");
   }
@@ -1040,6 +1033,8 @@ function renderOperatorMode(){
   }
   const exit = $("exitOperatorLink");
   if(exit) exit.style.display = safe ? "inline" : "none";
+  const logout = $("topLogoutLink");
+  if(logout) logout.style.display = (adminOK || operatorOK) ? "inline" : "none";
   if(safe){
     const active = document.querySelector(".menuSection.active");
     if(active && ["menuMatchGroup","menuSettingGroup"].includes(active.id)){
@@ -1547,6 +1542,7 @@ window.adminLogin = async function(){
     const loginCard = $("loginCard");
     if(loginCard) loginCard.classList.add("hidden");
     await update(ref(db, "scoreboard/state"), {operator_safe_mode:false});
+    renderOperatorMode();
     saveUiSession();
   }else{
     alert("Password admin salah");
@@ -1572,6 +1568,7 @@ window.operatorLogin = async function(){
   const loginCard = $("loginCard");
   if(loginCard) loginCard.classList.add("hidden");
   await update(ref(db, "scoreboard/state"), {operator_safe_mode:true});
+  renderOperatorMode();
   openMenu("menuCounter", document.querySelector(".menuBtn"));
   saveUiSession();
 }
@@ -1808,7 +1805,10 @@ window.newMatch = async function(){
 }
 
 
-window.logoutAdmin = function(){
+
+window.logoutControlSession = function(){
+  const wasOperator = operatorOK;
+  const wasAdmin = adminOK;
   adminOK = false;
   operatorOK = false;
   currentOperatorId = "";
@@ -1821,11 +1821,18 @@ window.logoutAdmin = function(){
   Object.keys(sessionStorage).forEach(k => {
     if(k.startsWith("scoreboard_active_sub_")) sessionStorage.removeItem(k);
   });
-  $("adminPanel").classList.add("hidden");
+  const panel = $("adminPanel");
   const loginCard = $("loginCard");
+  if(panel) panel.classList.add("hidden");
   if(loginCard) loginCard.classList.remove("hidden");
-  alert("Admin logout");
+  renderOperatorMode();
+  alert(wasOperator ? "Operator logout" : (wasAdmin ? "Admin logout" : "Logout"));
 }
+
+window.logoutAdmin = function(){
+  window.logoutControlSession();
+}
+
 
 window.enableOperatorSafeMode = async function(){
   if(!requireAdmin()) return;
