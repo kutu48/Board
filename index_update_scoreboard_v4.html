@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Digital Scoreboard Online v4</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#020617;color:white}
+    .hidden{display:none!important}
+    .page{min-height:100vh}
+    .setup{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+    .box{width:min(760px,96vw);background:#111827;border:1px solid #334155;border-radius:24px;padding:22px;box-shadow:0 20px 70px #0009}
+    h1,h2{margin-top:0}
+    p{color:#cbd5e1;line-height:1.45}
+    textarea,input,select,button{width:100%;padding:13px;border-radius:13px;border:0;font-size:16px;margin:6px 0}
+    textarea,input,select{background:#020617;color:white;border:1px solid #475569}
+    textarea{min-height:150px;font-family:Consolas,monospace;font-size:13px}
+    button{background:#2563eb;color:white;font-weight:900;cursor:pointer}
+    .green{background:#16a34a}.red{background:#dc2626}.yellow{background:#f59e0b;color:#111}.purple{background:#7c3aed}.gray{background:#475569}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .card{background:#1e293b;border:1px solid #334155;border-radius:18px;padding:16px;margin:12px}
+    header{position:sticky;top:0;z-index:8;background:#020617;border-bottom:1px solid #334155;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    header h1{font-size:20px;margin:0}
+    a{color:#93c5fd;text-decoration:none}
+    .small{font-size:13px;color:#94a3b8}
+    .scorebox{text-align:center;font-size:44px;font-weight:900;background:#020617;border-radius:16px;padding:14px;margin:8px 0}
+    .historyItem{background:#0f172a;border:1px solid #334155;padding:10px;border-radius:12px;margin:8px 0;font-size:14px}
+    .setHistoryList{margin-top:8px;border-top:1px dashed #475569;padding-top:8px}
+    .setHistoryRow{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;background:#020617;border:1px solid #334155;border-radius:10px;padding:8px;margin:5px 0;font-size:12px}
+    .setHistoryWinner{color:#22c55e;font-weight:900}
+    .setHistoryLive{color:#fbbf24;font-weight:900}
+    .menuWrap{margin:0;padding-bottom:82px}
+    .menuList{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#020617;border-top:1px solid #334155;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px}
+    .menuTitle{display:none}
+    .menuBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;background:#0f172a;border:1px solid #334155;margin:0;padding:9px 4px;border-radius:14px;color:#e2e8f0;font-size:11px;min-height:54px;text-align:center}
+    .menuBtn.active{background:#2563eb;border-color:#93c5fd;color:#fff}
+    .menuContent{min-width:0;padding:0}
+    .menuSection{display:none}
+    .menuSection.active{display:block}
+    .miniActions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+    .entryItem,.matchItem{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:12px;margin:8px 0}
+    .entryName{font-weight:900;color:#fff;font-size:15px}
+    .entryPlayers{font-size:12px;color:#cbd5e1;margin-top:4px}
+    .matchRoundTitle{font-weight:900;color:#fbbf24;margin:14px 0 8px}
+    .matchTeams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
+    .matchTeam{background:#020617;border:1px solid #334155;border-radius:12px;padding:10px;min-height:56px}
+    .matchVs{font-weight:900;color:#fbbf24}
+    .winnerBadge{display:inline-block;background:#16a34a;color:white;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;margin-top:6px}
+    .warningBadge{display:inline-block;background:#f59e0b;color:#111;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;margin:6px 0}
+    .bracketModeBox{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+    .bracketChart{display:flex;gap:18px;overflow-x:auto;padding:12px 4px}
+    .bracketRound{min-width:260px;display:flex;flex-direction:column;gap:14px}
+    .bracketRound h3{margin:0;color:#fbbf24;font-size:16px}
+    .bracketChartMatch{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;position:relative}
+    .bracketChartMatch.active{border-color:#93c5fd;box-shadow:0 0 0 2px #2563eb55}
+    .bracketLine{height:2px;background:#475569;margin:8px 0}
+    .bracketSlot{background:#020617;border:1px solid #334155;border-radius:10px;padding:8px;margin:5px 0;font-size:12px}
+    .bracketSlot.win{border-color:#22c55e;background:#052e16;color:#bbf7d0;font-weight:900}
+    .bracketSlot.bye{opacity:.65}
+    .championBox{background:linear-gradient(135deg,#f59e0b,#78350f);border:1px solid #fbbf24;border-radius:16px;padding:14px;margin:10px 0;text-align:center;font-weight:900;color:#fff}
+
+    .subMenu{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px}
+    .subBtn{background:#111827;border:1px solid #334155;color:#e2e8f0;border-radius:14px;padding:12px;font-weight:900}
+    .subBtn.active{background:#2563eb;border-color:#93c5fd;color:#fff}
+    .subPanel{display:none}
+    .subPanel.active{display:block}
+    .counterGrid{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 148px);margin:-12px}
+    .teamCounter{border:0;border-radius:0;padding:12px;display:flex;flex-direction:column;justify-content:center;min-height:calc(100vh - 148px)}
+    .teamCounter.teamABox{background:linear-gradient(135deg,#1d4ed8,#020617)}
+    .teamCounter.teamBBox{background:linear-gradient(135deg,#b91c1c,#020617)}
+    .teamCounter h2{font-size:20px;text-align:center;margin:0 0 8px;line-height:1.1}
+    .bigScore{font-size:86px;font-weight:900;text-align:center;background:#0007;border-radius:20px;padding:18px 8px;margin:10px 0;text-shadow:0 8px 22px #000}
+    .matchInfoBox{background:#020617;border:1px solid #334155;border-radius:16px;padding:12px;margin:10px 0;text-align:center;font-weight:900;color:#fbbf24}
+    .ruleInfoBox{background:#020617;border:1px solid #334155;border-radius:14px;padding:10px;margin:8px 0;color:#cbd5e1;font-size:13px;line-height:1.4}
+    .setMini{font-size:13px;color:#dbeafe;text-align:center;margin-top:4px;font-weight:800}
+    .scoreBtns{display:grid;grid-template-columns:1fr;gap:10px}
+    .scoreBtns button{font-size:24px;padding:20px 8px;border-radius:18px}
+    .controlHeaderMini{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#020617;border-bottom:1px solid #334155;position:sticky;top:0;z-index:20}
+    .controlHeaderMini h1{font-size:17px;margin:0}
+    .controlHeaderMini .small{font-size:11px}
+    .sectionTitle{font-size:18px;margin:12px 12px 0}
+    
+    .rotateHint{display:none;position:fixed;inset:0;background:#020617f2;z-index:9999;color:white;align-items:center;justify-content:center;text-align:center;padding:24px}
+    .rotateHintBox{background:#111827;border:1px solid #334155;border-radius:24px;padding:24px;max-width:420px;box-shadow:0 20px 70px #0009}
+    .rotateIcon{font-size:56px;margin-bottom:12px}
+    .landscapeLockBtn{background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:12px;padding:9px 12px;width:auto;font-size:12px;margin:0}
+    @media(max-width:899px) and (orientation:portrait){
+      body.scoreLandscapeRequired #rotateHint{display:flex}
+      body.scoreLandscapeRequired #exitLandscapeBtn{display:block!important}
+    }
+    @media(max-width:899px) and (orientation:landscape){
+      body.scoreLandscapeRequired #exitLandscapeBtn{display:block!important}
+      body.scoreLandscapeRequired .controlHeaderMini{display:none}
+      body.scoreLandscapeRequired .menuWrap{padding-bottom:0}
+      body.scoreLandscapeRequired .menuList{display:none}
+      body.scoreLandscapeRequired #menuCounter .card{margin:0;border-radius:0;min-height:100vh;padding:8px}
+      body.scoreLandscapeRequired #menuCounter .sectionTitle{display:none}
+      body.scoreLandscapeRequired #menuCounter .matchInfoBox{margin:4px 0;padding:8px;font-size:12px}
+      body.scoreLandscapeRequired #menuCounter .counterGrid{min-height:calc(100vh - 46px);margin:0}
+      body.scoreLandscapeRequired #menuCounter .teamCounter{min-height:calc(100vh - 46px);padding:8px}
+      body.scoreLandscapeRequired #menuCounter .teamCounter h2{font-size:18px}
+      body.scoreLandscapeRequired #menuCounter .bigScore{font-size:58px;padding:8px;margin:6px 0}
+      body.scoreLandscapeRequired #menuCounter .scoreBtns{gap:6px}
+      body.scoreLandscapeRequired #menuCounter .scoreBtns button{font-size:22px;padding:12px 6px}
+    }
+
+    @media(min-width:900px){
+      .menuWrap{display:grid;grid-template-columns:260px 1fr;gap:12px;margin:12px;padding-bottom:0}
+      .menuList{position:sticky;top:78px;display:block;border:1px solid #334155;border-radius:18px;padding:12px;height:max-content}
+      .menuTitle{display:block;font-size:13px;color:#94a3b8;text-transform:uppercase;font-weight:900;margin:12px 8px 6px}
+      .menuBtn{display:flex;flex-direction:row;justify-content:flex-start;text-align:left;font-size:15px;margin:6px 0;padding:12px;min-height:auto}
+      .counterGrid{gap:12px;min-height:auto;margin:0}
+      .teamCounter{border:1px solid #334155;border-radius:18px;min-height:auto}
+    }
+    .top{height:14vh;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#020617;border-bottom:4px solid #334155}
+    .event{font-size:4.5vh;font-weight:900;letter-spacing:.08em;text-align:center}
+    .info{font-size:2.5vh;color:#cbd5e1;margin-top:.5vh;text-transform:uppercase}
+    .board{height:70vh;display:grid;grid-template-columns:1fr 20vw 1fr}
+    .team{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2vh;position:relative}
+    .logo{width:15vh;height:15vh;object-fit:contain;margin-bottom:2vh;filter:drop-shadow(0 10px 20px #0008)}
+    .name{font-size:6vh;font-weight:900;text-align:center;max-width:100%;text-transform:uppercase;line-height:1.05}
+    .players{font-size:2.4vh;font-weight:700;color:#e2e8f0;text-align:center;margin-top:1.2vh;min-height:3vh;line-height:1.25;text-transform:uppercase}
+    .score{font-size:28vh;font-weight:900;line-height:.9;margin-top:3vh;text-shadow:0 12px 30px #0009}
+    .center{background:#020617;display:flex;align-items:center;justify-content:center;flex-direction:column;border-left:4px solid #334155;border-right:4px solid #334155}
+    .timerDisplay{font-size:6vh;font-weight:900;background:#111827;border:3px solid #475569;border-radius:2vh;padding:2vh 2vw}
+    .vs{font-size:5vh;font-weight:900;margin-top:3vh;color:#fbbf24}
+    .setStatus{font-size:2.2vh;font-weight:900;color:#e2e8f0;margin-top:2vh;text-align:center;text-transform:uppercase}
+    .matchStatus{font-size:2.4vh;font-weight:900;color:#fbbf24;margin-top:1vh;text-align:center;text-transform:uppercase;max-width:18vw;line-height:1.2}
+    .bottom{height:8vh;background:#020617;display:flex;align-items:center;justify-content:center;gap:1vw;border-top:2px solid #334155}
+    .pill{font-size:1.45vh;font-weight:800;background:#111827;border:1px solid #475569;border-radius:999px;padding:.8vh 1.2vw;text-transform:uppercase;color:#cbd5e1}
+    .iconBtn{z-index:30;color:#fff;border-radius:999px;width:34px;height:34px;padding:0;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px #0007}
+    .configBtn{position:fixed;top:10px;right:10px;background:#111827;border:1px solid #475569}
+    .voiceBtn{position:fixed;top:50px;right:10px;background:#16a34a;border:1px solid #86efac}
+    .fullscreenBtn{position:fixed;top:90px;right:10px;background:#2563eb;border:1px solid #93c5fd}
+    .isFullscreen .configBtn,.isFullscreen .voiceBtn,.isFullscreen .fullscreenBtn{opacity:.06;transition:.2s}
+    .isFullscreen .configBtn:hover,.isFullscreen .voiceBtn:hover,.isFullscreen .fullscreenBtn:hover{opacity:1}
+    .buzzerFlash{animation:flash .18s linear 8}
+    @keyframes flash{0%{filter:brightness(1)}50%{filter:brightness(2.2)}100%{filter:brightness(1)}}
+
+    .operatorSafe .adminOnly,.operatorSafe .dangerAdmin{display:none!important}
+    .operatorBadge{display:inline-block;background:#22c55e;color:#052e16;border-radius:999px;padding:4px 9px;font-weight:900;font-size:11px;margin-top:4px}
+    .operatorRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;margin:8px 0}
+    .operatorRow .opName{font-weight:900;color:#fff}
+    .operatorRow .opMeta{font-size:12px;color:#94a3b8;margin-top:3px}
+    .operatorActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .operatorActions button{width:auto;padding:8px 10px;margin:0;font-size:12px;border-radius:10px}
+    .tvSponsorBar{position:absolute;top:14vh;left:0;right:0;height:6vh;display:flex;align-items:center;justify-content:space-between;padding:0 2vw;pointer-events:none;z-index:5}
+    .sponsorBox{display:flex;align-items:center;gap:.8vw;background:#020617aa;border:1px solid #475569;border-radius:999px;padding:.5vh 1vw;font-size:1.8vh;font-weight:900;max-width:28vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .sponsorLogo{width:4vh;height:4vh;object-fit:contain;display:none}
+    .runningTextWrap{height:4vh;background:#111827;border-top:1px solid #475569;overflow:hidden;display:flex;align-items:center;width:100%}
+    .runningText{white-space:nowrap;font-size:2vh;font-weight:900;color:#fbbf24;animation:marquee 22s linear infinite;padding-left:100%}
+    @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+    .formRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .wideBtn{width:100%}
+    @media(max-width:700px){
+      .grid{grid-template-columns:1fr}
+      header{align-items:flex-start;flex-direction:column}
+      .board{grid-template-columns:1fr;grid-template-rows:1fr 22vh 1fr;height:auto;min-height:86vh}
+      .score{font-size:18vh}
+      .name{font-size:5vh}
+      .center{border-left:0;border-right:0;border-top:4px solid #334155;border-bottom:4px solid #334155}
+      .bottom{height:auto;min-height:10vh;flex-wrap:wrap;padding:12px}
+      .pill{font-size:2.4vh}
+    }
+  </style>
+</head>
+<body>
+<button id="exitLandscapeBtn" onclick="disableCounterLandscapeMode()" style="display:none;position:fixed;top:8px;left:8px;z-index:10000;width:auto;padding:8px 12px;border-radius:999px;background:#dc2626;color:white;font-size:12px">Keluar Landscape</button>
+<div id="rotateHint" class="rotateHint">
+  <div class="rotateHintBox">
+    <div class="rotateIcon">📱↔️</div>
+    <h2>Putar HP ke Landscape</h2>
+    <p>Counter Pertandingan dikunci khusus landscape supaya tombol score lebih besar dan aman dipakai wasit.</p>
+    <button onclick="forceCounterLandscape()">Coba Kunci Landscape</button>
+  </div>
+</div>
+
+<div id="setupPage" class="setup">
+  <div class="box">
+    <h1>Setup Scoreboard Online</h1>
+    <p>
+      Tempel konfigurasi Firebase Web App di bawah ini. Setelah connect,
+      halaman ini bisa jadi <b>display TV</b> atau <b>controller HP</b> tanpa server lokal.
+    </p>
+    <textarea id="firebaseConfigInput" placeholder='Contoh:
+{
+  "apiKey": "xxxxx",
+  "authDomain": "xxxxx.firebaseapp.com",
+  "databaseURL": "https://xxxxx-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "xxxxx",
+  "storageBucket": "xxxxx.appspot.com",
+  "messagingSenderId": "xxxxx",
+  "appId": "xxxxx"
+}'></textarea>
+    <div class="grid">
+      <button class="green" onclick="saveConfig()">Simpan Firebase Config</button>
+      <button class="gray" onclick="clearConfig()">Reset Config</button>
+    </div>
+    <p class="small">
+      Setelah config disimpan, gunakan URL:
+      <br><b>?display=1&forceDisplay=1</b> untuk TV Display
+      <br><b>?control=1&forceControl=1</b> untuk HP Controller
+    </p>
+    <div class="grid">
+      <button class="purple" onclick="setDisplayTvMode()">Paksa Mode TV Display</button>
+      <button class="green" onclick="setApkPhoneControlMode()">Paksa Mode HP Control</button>
+      <button class="gray" onclick="clearModeForce()">Mode Normal / Reset Mode</button>
+    </div>
+  </div>
+</div>
+
+<div id="controlPage" class="page hidden">
+  <div class="controlHeaderMini">
+    <div>
+      <h1>Scoreboard Control</h1>
+      <div class="small">HP Wasit / Admin</div><div class="small">Mode APK HP Control aktif</div><div id="operatorModeBadge" class="operatorBadge" style="display:none">MODE OPERATOR AMAN</div>
+    </div>
+    <div>
+      <a href="?display=1&forceDisplay=1" target="_blank">TV</a> |
+      <a href="javascript:showSetup()">Setup</a> | <a href="javascript:disableOperatorSafeModePrompt()" id="exitOperatorLink" style="display:none">Keluar Operator</a>
+    </div>
+  </div>
+
+  <div class="card" id="loginCard">
+    <h2>Login Control</h2>
+    <div class="grid">
+      <div>
+        <h3>Admin</h3>
+        <input id="adminPassword" type="password" placeholder="Password admin">
+        <button class="green" onclick="adminLogin()">LOGIN ADMIN</button>
+        <div class="small">Default admin: admin123</div>
+      </div>
+      <div>
+        <h3>Operator Aman</h3>
+        <select id="operatorLoginName"></select>
+        <input id="operatorPassword" type="password" placeholder="Password operator">
+        <button class="yellow" onclick="operatorLogin()">LOGIN OPERATOR</button>
+        <div class="small">Default operator: Operator 1 / op123</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminPanel" class="hidden">
+    <div class="menuWrap">
+      <div class="menuList">
+        <button class="menuBtn active" onclick="openMenu('menuCounter', this)">🔢<span>Score</span></button>
+        <button class="menuBtn" onclick="openMenu('menuTimer', this)">⏱<span>Timer</span></button>
+        <button class="menuBtn" onclick="openMenu('menuAction', this)">🚨<span>Action</span></button>
+        <button class="menuBtn adminOnly" onclick="openMenu('menuMatchGroup', this)">🏆<span>Match</span></button>
+        <button class="menuBtn adminOnly" onclick="openMenu('menuSettingGroup', this)">⚙<span>Admin</span></button>
+      </div>
+
+      <div class="menuContent">
+        <section id="menuCounter" class="menuSection active">
+          <div class="card">
+            <h2 class="sectionTitle">Counter Pertandingan</h2>
+            <div class="matchInfoBox" id="matchInfoControl">SET 1 • SET TEAM A 0 - 0 TEAM B</div>
+            <div class="counterGrid">
+              <div class="teamCounter teamABox">
+                <h2 id="titleA">TEAM A</h2>
+                <div class="setMini" id="setMiniA">Set menang: 0</div>
+                <div class="bigScore" id="scoreA">0</div>
+                <div class="scoreBtns">
+                  <button class="green" onclick="changeScore('a',1)">+1</button>
+                  <button class="red" onclick="changeScore('a',-1)">-1</button>
+                </div>
+              </div>
+              <div class="teamCounter teamBBox">
+                <h2 id="titleB">TEAM B</h2>
+                <div class="setMini" id="setMiniB">Set menang: 0</div>
+                <div class="bigScore" id="scoreB">0</div>
+                <div class="scoreBtns">
+                  <button class="green" onclick="changeScore('b',1)">+1</button>
+                  <button class="red" onclick="changeScore('b',-1)">-1</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="menuTimer" class="menuSection">
+          <div class="card">
+            <h2>⏱ Timer Pertandingan</h2>
+            <div class="scorebox" id="timerControl">00:00</div>
+            <select id="timerMode">
+              <option value="stopwatch">Stopwatch / Naik</option>
+              <option value="countdown">Countdown / Mundur</option>
+            </select>
+            <input id="timerMinutes" type="number" value="10" min="0" placeholder="Menit">
+            <div class="grid">
+              <button class="green" onclick="timerStart()">▶ Start</button>
+              <button class="yellow" onclick="timerPause()">⏸ Pause</button>
+              <button class="red" onclick="timerReset()">↺ Reset</button>
+              <button class="purple" onclick="timerSet()">⏱ Set</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="menuAction" class="menuSection">
+          <div class="card">
+            <h2>Action Wasit</h2>
+            <div class="grid">
+              <button class="red dangerAdmin" onclick="resetScore()">Reset Score</button>
+              <button class="yellow" onclick="sendBuzzer()">Buzzer</button>
+              <button class="green dangerAdmin" onclick="saveHistory()">Simpan History</button>
+              <button class="green dangerAdmin" onclick="updateActiveBracketWinner()">Update Winner Bagan</button>
+              <button class="purple dangerAdmin" onclick="newMatch()">Match Baru</button>
+              <button class="gray dangerAdmin" onclick="resetSetSportMatch()">Reset Set/Babak</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="menuMatchGroup" class="menuSection">
+          <div class="subMenu">
+            <button class="subBtn active" onclick="openSubMenu('subData', this)">Data</button>
+            <button class="subBtn" onclick="openSubMenu('subTeam', this)">Team</button>
+            <button class="subBtn" onclick="openSubMenu('subPlayers', this)">Pemain</button>
+            <button class="subBtn" onclick="openSubMenu('subVisual', this)">Visual</button>
+            <button class="subBtn" onclick="openSubMenu('subBracket', this)">Bagan</button>
+          </div>
+
+          <div id="subData" class="subPanel active">
+            <div class="card">
+              <h2>Setting Data Pertandingan</h2>
+              <input id="eventName" placeholder="Nama Event / Pertandingan">
+              <select id="mode" onchange="previewSportRule()">
+                <option value="badminton">Badminton</option>
+                <option value="futsal">Futsal</option>
+                <option value="voli">Voli</option>
+              </select>
+              <div class="ruleInfoBox" id="sportRuleInfo">Badminton: Best of 3 set, rally point 21, deuce unggul 2, maksimal 30.</div>
+              <select id="period">
+                <option>Babak 1</option>
+                <option>Babak 2</option>
+                <option>Set 1</option>
+                <option>Set 2</option>
+                <option>Set 3</option>
+                <option>Extra Time</option>
+                <option>Final</option>
+              </select>
+              <button onclick="setMatch()">Update Pertandingan</button>
+            </div>
+          </div>
+
+          <div id="subTeam" class="subPanel">
+            <div class="card">
+              <h2>Nama Team</h2>
+              <input id="teamA" placeholder="Nama Team A">
+              <input id="teamB" placeholder="Nama Team B">
+              <button onclick="setNames()">Update Team</button>
+            </div>
+          </div>
+
+          <div id="subPlayers" class="subPanel">
+            <div class="card">
+              <h2>Nama Pemain Badminton</h2>
+              <input id="playerA1" placeholder="Pemain A1">
+              <input id="playerA2" placeholder="Pemain A2 / kosong jika single">
+              <input id="playerB1" placeholder="Pemain B1">
+              <input id="playerB2" placeholder="Pemain B2 / kosong jika single">
+              <button class="purple" onclick="setPlayers()">Update Pemain</button>
+            </div>
+          </div>
+
+          <div id="subVisual" class="subPanel">
+            <div class="card">
+              <h2>Warna & Logo Team</h2>
+              <div class="grid">
+                <div>
+                  <div class="small">Team A</div>
+                  <input id="colorA" type="color" value="#2563eb">
+                  <input id="logoA" placeholder="URL Logo Team A">
+                </div>
+                <div>
+                  <div class="small">Team B</div>
+                  <input id="colorB" type="color" value="#dc2626">
+                  <input id="logoB" placeholder="URL Logo Team B">
+                </div>
+              </div>
+              <button class="purple" onclick="setVisual()">Update Visual</button>
+            </div>
+          </div>
+
+          <div id="subBracket" class="subPanel">
+            <div class="card">
+              <h2>Bagan Turnamen</h2>
+              <div class="small">Buat daftar peserta, lalu generate bagan acak. Sistem mencoba agar peserta dari team/club yang sama tidak ketemu di ronde awal.</div>
+              <input id="tourTeam" placeholder="Nama Team / Club / Kontingen">
+              <input id="tourPlayer1" placeholder="Nama Pemain 1">
+              <input id="tourPlayer2" placeholder="Nama Pemain 2 / kosong jika single">
+              <div class="grid">
+                <input id="tourColor" type="color" value="#2563eb">
+                <input id="tourLogo" placeholder="URL Logo, boleh kosong">
+              </div>
+              <select id="tournamentViewMode" onchange="setTournamentViewMode()">
+                <option value="list">Mode List Match</option>
+                <option value="knockout">Mode Knockout Bracket / Chart</option>
+              </select>
+              <div class="grid">
+                <button class="green" onclick="addTournamentEntry()">Tambah Peserta</button>
+                <button class="purple" onclick="generateTournamentBracket()">Generate Bagan Acak</button>
+                <button class="green" onclick="generateNextRound()">Generate Ronde Berikutnya</button>
+                <button class="red" onclick="clearTournament()">Hapus Bagan</button>
+                <button class="gray" onclick="clearTournamentEntries()">Hapus Peserta</button>
+              </div>
+              <hr style="border-color:#334155;margin:14px 0">
+              <h3>Import / Export Peserta</h3>
+              <textarea id="tournamentImportText" placeholder='Tempel JSON peserta di sini untuk import'></textarea>
+              <div class="grid">
+                <button class="green" onclick="exportTournamentData()">Export ke Text</button>
+                <button class="purple" onclick="importTournamentData()">Import dari Text</button>
+                <button class="gray" onclick="downloadTournamentBackup()">Download Backup</button>
+                <button class="yellow" onclick="document.getElementById('tournamentFileInput').click()">Upload File</button>
+              </div>
+              <input id="tournamentFileInput" type="file" accept="application/json,.json" style="display:none" onchange="loadTournamentFile(event)">
+            </div>
+
+            <div class="card">
+              <h2>Daftar Peserta</h2>
+              <div id="tournamentEntries"></div>
+            </div>
+
+            <div class="card">
+              <h2>Bagan Pertandingan</h2>
+              <div id="tournamentNote"></div>
+              <div id="tournamentBracket"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="menuSettingGroup" class="menuSection">
+          <div class="subMenu">
+            <button class="subBtn active" onclick="openSubMenu('subPassword', this)">Password</button>
+            <button class="subBtn" onclick="openSubMenu('subHistory', this)">History</button>
+            <button class="subBtn" onclick="openSubMenu('subMode', this)">Mode</button>
+            <button class="subBtn" onclick="openSubMenu('subOperators', this)">Operator</button>
+            <button class="subBtn" onclick="openSubMenu('subSound', this)">Sound</button>
+            <button class="subBtn" onclick="openSubMenu('subTvVisual', this)">TV</button>
+          </div>
+
+          <div id="subPassword" class="subPanel active">
+            <div class="card">
+              <h2>Ganti Password Admin</h2>
+              <input id="newAdminPassword" placeholder="Password baru">
+              <button class="gray" onclick="changePassword()">Ganti Password</button>
+              <button class="red" onclick="logoutAdmin()">Logout Admin</button>
+            </div>
+          </div>
+
+          <div id="subHistory" class="subPanel">
+            <div class="card">
+              <h2>History Pertandingan</h2>
+              <div class="grid">
+                <button class="green" onclick="saveHistory()">Simpan Sekarang</button>
+                <button class="red" onclick="clearHistory()">Hapus Semua</button>
+              </div>
+              <button class="red" onclick="resetAllData()">Reset Semua Data</button>
+              <div id="history"></div>
+            </div>
+          </div>
+
+          <div id="subMode" class="subPanel">
+            <div class="card">
+              <h2>Mode Normal / Operator Aman</h2>
+              <p class="small">Mode Operator Aman menyembunyikan menu setting, match, history, reset besar, dan hanya menyisakan kontrol score/timer/buzzer.</p>
+              <div class="grid">
+                <button class="green" onclick="enableOperatorSafeMode()">Aktifkan Operator Aman</button>
+                <button class="gray" onclick="disableOperatorSafeModePrompt()">Matikan Operator Aman</button>
+                <button class="purple" onclick="setDisplayTvMode()">Paksa TV Display</button>
+                <button class="green" onclick="setApkPhoneControlMode()">Paksa HP Control</button>
+                <button class="yellow" onclick="clearModeForce()">Mode Normal / Reset Mode</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="subOperators" class="subPanel">
+            <div class="card">
+              <h2>Kelola Operator Aman</h2>
+              <p class="small">Operator punya password sendiri. Saat login, operator hanya bisa akses score, timer, dan buzzer. Admin tetap punya akses penuh.</p>
+              <div class="formRow">
+                <input id="operatorNameInput" placeholder="Nama operator / wasit">
+                <input id="operatorPassInput" placeholder="Password operator">
+              </div>
+              <button class="green" onclick="addOperatorAccount()">Tambah Operator</button>
+              <div id="operatorList"></div>
+            </div>
+          </div>
+
+          <div id="subSound" class="subPanel">
+            <div class="card">
+              <h2>Setting Sound / Voice</h2>
+              <select id="settingVoiceEnabled">
+                <option value="1">Voice ON</option>
+                <option value="0">Voice OFF</option>
+              </select>
+              <select id="settingVoiceScore">
+                <option value="1">Baca Score ON</option>
+                <option value="0">Baca Score OFF</option>
+              </select>
+              <select id="settingVoiceStatus">
+                <option value="1">Baca Status Point ON</option>
+                <option value="0">Baca Status Point OFF</option>
+              </select>
+              <div class="formRow">
+                <input id="settingVoiceRate" type="number" min="0.6" max="1.4" step="0.05" placeholder="Speed voice 0.95">
+                <input id="settingVoiceDelay" type="number" min="0" max="3000" step="100" placeholder="Delay voice ms">
+              </div>
+              <input id="settingBuzzerVolume" type="number" min="0" max="1" step="0.05" placeholder="Volume buzzer 0 - 1">
+              <div class="grid">
+                <button class="green" onclick="saveSoundSettings()">Simpan Sound</button>
+                <button class="yellow" onclick="testSoundSettings()">Test Voice & Buzzer</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="subTvVisual" class="subPanel">
+            <div class="card">
+              <h2>Sponsor & Running Text TV</h2>
+              <input id="sponsorLeft" placeholder="Sponsor kiri / nama perusahaan">
+              <input id="sponsorLogoLeft" placeholder="URL logo sponsor kiri">
+              <input id="sponsorRight" placeholder="Sponsor kanan / nama perusahaan">
+              <input id="sponsorLogoRight" placeholder="URL logo sponsor kanan">
+              <textarea id="runningText" placeholder="Running text bawah TV"></textarea>
+              <button class="purple" onclick="saveTvVisualSettings()">Update Tampilan TV</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="displayPage" class="page hidden">
+  <button class="configBtn iconBtn" onclick="showSetup()" title="Setup">⚙</button>
+  <button class="voiceBtn iconBtn" onclick="enableVoice()" title="Voice ON">🔊</button>
+  <button class="fullscreenBtn iconBtn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+  <div class="top">
+    <div class="event" id="displayEventName">TURNAMEN SCOREBOARD</div>
+    <div class="info"><span id="displayMode">BADMINTON</span> • <span id="displayPeriod">BABAK 1</span></div>
+  </div>
+  <div class="tvSponsorBar">
+    <div class="sponsorBox"><img id="displaySponsorLogoLeft" class="sponsorLogo"><span id="displaySponsorLeft"></span></div>
+    <div class="sponsorBox"><span id="displaySponsorRight"></span><img id="displaySponsorLogoRight" class="sponsorLogo"></div>
+  </div>
+  <div class="board">
+    <div class="team" id="panelA">
+      <img class="logo" id="displayLogoA" style="display:none">
+      <div class="name" id="displayTeamA">TEAM A</div>
+      <div class="players" id="displayPlayersA"></div>
+      <div class="score" id="displayScoreA">0</div>
+    </div>
+    <div class="center">
+      <div class="timerDisplay" id="displayTimer">00:00</div>
+      <div class="vs">VS</div>
+      <div class="setStatus" id="displaySetStatus">SET 1 • 0 - 0</div>
+      <div class="matchStatus" id="displayMatchStatus"></div>
+    </div>
+    <div class="team" id="panelB">
+      <img class="logo" id="displayLogoB" style="display:none">
+      <div class="name" id="displayTeamB">TEAM B</div>
+      <div class="players" id="displayPlayersB"></div>
+      <div class="score" id="displayScoreB">0</div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="pill" id="displayStatus">● ONLINE</div>
+    <div class="pill">☁ SYNC</div>
+    <div class="runningTextWrap"><div class="runningText" id="displayRunningText"></div></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getDatabase, ref, onValue, set, update, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+const DEFAULT_STATE = {
+  event_name:"TURNAMEN SCOREBOARD",
+  mode:"badminton",
+  period:"Set 1",
+  sport_rule:"set",
+  sport_rule_label:"Badminton - Best of 3 Set",
+  point_target:21,
+  max_point:30,
+  win_by:2,
+  best_of:3,
+  team_a:"TEAM A",
+  team_b:"TEAM B",
+  player_a1:"",
+  player_a2:"",
+  player_b1:"",
+  player_b2:"",
+  score_a:0,
+  score_b:0,
+  set_a:0,
+  set_b:0,
+  current_set:1,
+  set_scores:[],
+  match_finished:false,
+  match_winner:"",
+  last_point_status:"",
+  tournament_entries:[],
+  tournament_matches:[],
+  active_match_id:"",
+  tournament_note:"",
+  tournament_view_mode:"list",
+  color_a:"#2563eb",
+  color_b:"#dc2626",
+  logo_a:"",
+  logo_b:"",
+  timer_seconds:0,
+  timer_running:false,
+  timer_started_at:0,
+  timer_mode:"stopwatch",
+  voice_enabled:false,
+  voice_score_enabled:true,
+  voice_status_enabled:true,
+  voice_rate:0.95,
+  voice_pitch:1,
+  voice_delay_ms:0,
+  buzzer_volume:0.12,
+  sponsor_left:"",
+  sponsor_right:"",
+  sponsor_logo_left:"",
+  sponsor_logo_right:"",
+  running_text:"",
+  operator_safe_mode:false,
+  operators:[{id:"op1", name:"Operator 1", password:"op123", active:true}],
+  auto_bracket_winner:true,
+  buzzer_id:0,
+  admin_password:"admin123"
+};
+
+let app, db, currentState = {...DEFAULT_STATE};
+let adminOK = sessionStorage.getItem('scoreboard_admin_ok') === '1';
+let operatorOK = sessionStorage.getItem('scoreboard_operator_ok') === '1';
+let currentOperatorId = sessionStorage.getItem('scoreboard_operator_id') || '';
+let currentOperatorName = sessionStorage.getItem('scoreboard_operator_name') || '';
+let lastBuzzer = 0;
+let audioCtx = null;
+const DEFAULT_FIREBASE_CONFIG = {
+  "apiKey": "AIzaSyDAr3YiTepfIWHrYR7cUZRdB252ZtXwlfg",
+  "authDomain": "board-56789.firebaseapp.com",
+  "databaseURL": "https://board-56789-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "board-56789",
+  "storageBucket": "board-56789.firebasestorage.app",
+  "messagingSenderId": "639842564471",
+  "appId": "1:639842564471:web:f33eaa166cdc230ac98972",
+  "measurementId": "G-V9B4GE1N0B"
+};
+let voiceEnabled = localStorage.getItem('scoreboard_voice_enabled') === '1';
+let prevScoreA = null;
+let prevScoreB = null;
+
+const qs = new URLSearchParams(location.search);
+
+// MODE DETECTION FIX:
+// HP / layar kecil default = CONTROL.
+// TV / tablet besar default = DISPLAY.
+// Paksa HP control: ?control=1&forceControl=1
+// Paksa TV display: ?display=1&forceDisplay=1
+const forceDisplayMode = qs.has("forceDisplay") || qs.has("tv") || localStorage.getItem("scoreboard_force_display") === "1";
+const apkForceControl = qs.has("forceControl") || localStorage.getItem("scoreboard_force_phone_control") === "1";
+const phoneLikeDevice = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) < 700;
+const largeDisplayDevice = Math.max(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) >= 900;
+
+let isControl = qs.has("control");
+let isDisplay = qs.has("display");
+
+// forceDisplay lebih tinggi prioritasnya untuk TV.
+if(forceDisplayMode){
+  isControl = false;
+  isDisplay = true;
+  localStorage.setItem("scoreboard_force_display", "1");
+  localStorage.removeItem("scoreboard_force_phone_control");
+}else if(phoneLikeDevice || apkForceControl){
+  isControl = true;
+  isDisplay = false;
+  localStorage.setItem("scoreboard_force_phone_control", "1");
+  localStorage.removeItem("scoreboard_force_display");
+}else if(largeDisplayDevice && !qs.has("control")){
+  isControl = false;
+  isDisplay = true;
+}else if(!isControl && !isDisplay){
+  isControl = true;
+  isDisplay = false;
+}
+
+window.setApkPhoneControlMode = function(){
+  localStorage.setItem("scoreboard_force_phone_control", "1");
+  localStorage.removeItem("scoreboard_force_display");
+  location.href = location.pathname + "?control=1&forceControl=1";
+}
+
+window.setDisplayTvMode = function(){
+  localStorage.setItem("scoreboard_force_display", "1");
+  localStorage.removeItem("scoreboard_force_phone_control");
+  location.href = location.pathname + "?display=1&forceDisplay=1";
+}
+
+window.clearModeForce = function(){
+  localStorage.removeItem("scoreboard_force_phone_control");
+  localStorage.removeItem("scoreboard_force_display");
+  location.href = location.pathname;
+}
+
+function $(id){ return document.getElementById(id); }
+
+function isMobileScreen(){
+  return window.innerWidth < 900 || window.screen.width < 900;
+}
+async function requestAppFullscreen(){
+  try{
+    const el = document.documentElement;
+    if(!document.fullscreenElement && el.requestFullscreen){ await el.requestFullscreen(); }
+  }catch(e){}
+}
+async function lockLandscape(){
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      await screen.orientation.lock("landscape");
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function unlockOrientation(){
+  try{
+    if(screen.orientation && screen.orientation.unlock){ screen.orientation.unlock(); }
+  }catch(e){}
+}
+window.forceCounterLandscape = async function(){
+  document.body.classList.add("scoreLandscapeRequired");
+  const exitBtn = $("exitLandscapeBtn");
+  if(exitBtn) exitBtn.style.display = "block";
+  await requestAppFullscreen();
+  const ok = await lockLandscape();
+  const hint = $("rotateHint");
+  if(hint && !ok && window.innerHeight > window.innerWidth){ hint.style.display = "flex"; }
+}
+window.enableCounterLandscapeMode = async function(){
+  if(!isControl) return;
+  if(!isMobileScreen()) return;
+  document.body.classList.add("scoreLandscapeRequired");
+  await requestAppFullscreen();
+  await lockLandscape();
+}
+window.disableCounterLandscapeMode = function(){
+  document.body.classList.remove("scoreLandscapeRequired");
+  const hint = $("rotateHint");
+  if(hint) hint.style.display = "";
+  const exitBtn = $("exitLandscapeBtn");
+  if(exitBtn) exitBtn.style.display = "none";
+  unlockOrientation();
+}
+window.addEventListener("orientationchange", () => {
+  const hint = $("rotateHint");
+  if(!hint) return;
+  setTimeout(()=>{
+    if(document.body.classList.contains("scoreLandscapeRequired") && window.innerHeight > window.innerWidth && isMobileScreen()){
+      hint.style.display = "flex";
+    }else{
+      hint.style.display = "";
+    }
+  },300);
+});
+window.addEventListener("resize", () => {
+  const hint = $("rotateHint");
+  if(!hint) return;
+  if(document.body.classList.contains("scoreLandscapeRequired") && window.innerHeight > window.innerWidth && isMobileScreen()){
+    hint.style.display = "flex";
+  }else{
+    hint.style.display = "";
+  }
+});
+
+
+
+function saveUiSession(){
+  try{
+    const activeMenu = document.querySelector(".menuSection.active");
+    if(activeMenu) sessionStorage.setItem("scoreboard_active_menu", activeMenu.id);
+
+    const activeBtnText = document.querySelector(".menuBtn.active span")?.innerText || "";
+    if(activeBtnText) sessionStorage.setItem("scoreboard_active_menu_text", activeBtnText);
+
+    document.querySelectorAll(".menuSection").forEach(section => {
+      const activeSub = section.querySelector(".subPanel.active");
+      if(activeSub) sessionStorage.setItem("scoreboard_active_sub_" + section.id, activeSub.id);
+    });
+  }catch(e){}
+}
+
+function restoreUiSession(){
+  try{
+    if(sessionStorage.getItem("scoreboard_admin_ok") === "1"){
+      adminOK = true;
+      operatorOK = false;
+      const panel = $("adminPanel");
+      const login = $("loginCard");
+      if(panel) panel.classList.remove("hidden");
+      if(login) login.classList.add("hidden");
+    }else if(sessionStorage.getItem("scoreboard_operator_ok") === "1"){
+      operatorOK = true;
+      currentOperatorId = sessionStorage.getItem("scoreboard_operator_id") || "";
+      currentOperatorName = sessionStorage.getItem("scoreboard_operator_name") || "Operator";
+      const panel = $("adminPanel");
+      const login = $("loginCard");
+      if(panel) panel.classList.remove("hidden");
+      if(login) login.classList.add("hidden");
+    }
+
+    const menuId = sessionStorage.getItem("scoreboard_active_menu");
+    if(menuId && $(menuId)){
+      document.querySelectorAll(".menuSection").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".menuBtn").forEach(el => el.classList.remove("active"));
+      $(menuId).classList.add("active");
+
+      document.querySelectorAll(".menuBtn").forEach(btn => {
+        const onclick = btn.getAttribute("onclick") || "";
+        if(onclick.includes("'" + menuId + "'") || onclick.includes('"' + menuId + '"')){
+          btn.classList.add("active");
+        }
+      });
+    }
+
+    document.querySelectorAll(".menuSection").forEach(section => {
+      const subId = sessionStorage.getItem("scoreboard_active_sub_" + section.id);
+      if(subId && $(subId)){
+        section.querySelectorAll(".subPanel").forEach(el => el.classList.remove("active"));
+        section.querySelectorAll(".subBtn").forEach(el => el.classList.remove("active"));
+        $(subId).classList.add("active");
+
+        section.querySelectorAll(".subBtn").forEach(btn => {
+          const onclick = btn.getAttribute("onclick") || "";
+          if(onclick.includes("'" + subId + "'") || onclick.includes('"' + subId + '"')){
+            btn.classList.add("active");
+          }
+        });
+      }
+    });
+
+    // Jangan auto landscape lock setelah restore, supaya menu tidak hilang.
+    if(typeof disableCounterLandscapeMode === "function"){
+      disableCounterLandscapeMode();
+    }
+  }catch(e){}
+}
+
+window.addEventListener("beforeunload", saveUiSession);
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "hidden") saveUiSession();
+});
+
+function setInputValue(id, value){
+  const el = $(id);
+  if(!el) return;
+  // Jangan overwrite input/select saat user sedang mengetik/memilih.
+  if(document.activeElement === el) return;
+  el.value = value ?? "";
+}
+
+window.openMenu = function(sectionId, btn){
+  document.querySelectorAll(".menuSection").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".menuBtn").forEach(el => el.classList.remove("active"));
+  const sec = document.getElementById(sectionId);
+  if(sec) sec.classList.add("active");
+  if(btn) btn.classList.add("active");
+
+  // Menu tetap normal. Landscape counter hanya aktif jika tombol Landscape diklik manual.
+  if(sectionId !== "menuCounter"){
+    disableCounterLandscapeMode();
+  }
+  saveUiSession();
+}
+
+window.openSubMenu = function(panelId, btn){
+  const group = btn.closest(".menuSection");
+  if(!group) return;
+  group.querySelectorAll(".subPanel").forEach(el => el.classList.remove("active"));
+  group.querySelectorAll(".subBtn").forEach(el => el.classList.remove("active"));
+  const panel = document.getElementById(panelId);
+  if(panel) panel.classList.add("active");
+  if(btn) btn.classList.add("active");
+  saveUiSession();
+}
+
+function getConfig(){
+  const raw = localStorage.getItem("firebase_config");
+  if(raw){
+    try { return JSON.parse(raw); } catch(e){}
+  }
+  return DEFAULT_FIREBASE_CONFIG;
+}
+
+window.saveConfig = function(){
+  try{
+    const cfg = JSON.parse($("firebaseConfigInput").value);
+    localStorage.setItem("firebase_config", JSON.stringify(cfg));
+    location.href = forceDisplayMode ? "?display=1&forceDisplay=1" : ((phoneLikeDevice || apkForceControl) ? "?control=1&forceControl=1" : (isDisplay ? "?display=1&forceDisplay=1" : "?control=1&forceControl=1"));
+  }catch(e){
+    alert("Config Firebase belum valid JSON");
+  }
+}
+
+window.clearConfig = function(){
+  localStorage.removeItem("firebase_config");
+  location.reload();
+}
+
+window.showSetup = function(){
+  if(isDisplay){
+    alert("Setup Firebase dilakukan dari HP Controller. Display TV cukup buka link ?display=1.");
+    return;
+  }
+  $("setupPage").classList.remove("hidden");
+  $("controlPage").classList.add("hidden");
+  $("displayPage").classList.add("hidden");
+  const raw = localStorage.getItem("firebase_config");
+  const cfg = raw ? JSON.parse(raw) : DEFAULT_FIREBASE_CONFIG;
+  $("firebaseConfigInput").value = cfg ? JSON.stringify(cfg, null, 2) : "";
+}
+
+function showMain(){
+  $("setupPage").classList.add("hidden");
+  if(isDisplay){
+    $("displayPage").classList.remove("hidden");
+  }else{
+    $("controlPage").classList.remove("hidden");
+  }
+}
+
+async function init(){
+  const cfg = getConfig();
+  if(!cfg && !isDisplay){
+    window.showSetup();
+    return;
+  }
+
+  try{
+    app = initializeApp(cfg);
+    db = getDatabase(app);
+    showMain();
+
+    const stateSnap = await get(ref(db, "scoreboard/state"));
+    if(!stateSnap.exists()){
+      await set(ref(db, "scoreboard/state"), DEFAULT_STATE);
+    }
+
+    onValue(ref(db, "scoreboard/state"), (snap) => {
+      currentState = {...DEFAULT_STATE, ...(snap.val() || {})};
+      renderAll();
+      restoreUiSession();
+    });
+
+    onValue(ref(db, "scoreboard/history"), (snap) => {
+      renderHistory(snap.val() || {});
+    });
+
+  }catch(e){
+    if(isDisplay){
+      showMain();
+      const st = $("displayStatus");
+      if(st) st.innerText = "● OFF";
+      console.error(e);
+    }else{
+      alert("Gagal connect Firebase. Cek config dan databaseURL.");
+      window.showSetup();
+    }
+  }
+}
+
+function nowSec(){ return Math.floor(Date.now()/1000); }
+
+function timerValue(s){
+  let seconds = Number(s.timer_seconds || 0);
+  const elapsed = (s.timer_running && s.timer_started_at) ? (nowSec() - Number(s.timer_started_at || nowSec())) : 0;
+  if(String(s.timer_mode || "stopwatch") === "countdown"){
+    seconds = seconds - elapsed;
+  }else{
+    seconds = seconds + elapsed;
+  }
+  return Math.max(0, seconds);
+}
+
+function formatTime(sec){
+  sec = Math.max(0, Number(sec || 0));
+  const m = Math.floor(sec / 60).toString().padStart(2,"0");
+  const s = Math.floor(sec % 60).toString().padStart(2,"0");
+  return `${m}:${s}`;
+}
+
+function boolVal(v){ return v === true || v === 1 || v === "1" || v === "true"; }
+function normalizeText(v){ return String(v || "").trim().replace(/\s+/g," ").toLowerCase(); }
+function isOperatorSafe(){ return boolVal(currentState.operator_safe_mode); }
+
+function renderOperatorMode(){
+  const safe = isOperatorSafe() || operatorOK;
+  document.body.classList.toggle("operatorSafe", safe);
+  const badge = $("operatorModeBadge");
+  if(badge){
+    badge.style.display = safe ? "inline-block" : "none";
+    badge.innerText = operatorOK ? `MODE OPERATOR: ${currentOperatorName || "OPERATOR"}` : "MODE OPERATOR AMAN";
+  }
+  const exit = $("exitOperatorLink");
+  if(exit) exit.style.display = safe ? "inline" : "none";
+  if(safe){
+    const active = document.querySelector(".menuSection.active");
+    if(active && ["menuMatchGroup","menuSettingGroup"].includes(active.id)){
+      openMenu("menuCounter", document.querySelector(".menuBtn"));
+    }
+  }
+}
+
+function getOperators(){
+  const list = Array.isArray(currentState.operators) ? currentState.operators : [];
+  return list.length ? list : DEFAULT_STATE.operators;
+}
+
+function saveOperators(list){
+  return update(ref(db, "scoreboard/state"), {operators:list});
+}
+
+function renderOperatorLoginOptions(){
+  const sel = $("operatorLoginName");
+  if(!sel) return;
+  const ops = getOperators().filter(op => op && op.active !== false);
+  const current = sel.value;
+  sel.innerHTML = ops.map(op => `<option value="${op.id}">${op.name || "Operator"}</option>`).join("");
+  if(current && ops.some(op => op.id === current)) sel.value = current;
+}
+
+function renderOperatorList(){
+  const box = $("operatorList");
+  if(!box) return;
+  const ops = getOperators();
+  if(!ops.length){
+    box.innerHTML = `<div class="small">Belum ada operator.</div>`;
+    return;
+  }
+  box.innerHTML = ops.map(op => `
+    <div class="operatorRow">
+      <div>
+        <div class="opName">${op.name || "Operator"}</div>
+        <div class="opMeta">ID: ${op.id} • Status: ${op.active === false ? "Nonaktif" : "Aktif"}</div>
+      </div>
+      <div class="operatorActions">
+        <button class="yellow" onclick="editOperatorAccount('${op.id}')">Edit</button>
+        <button class="gray" onclick="toggleOperatorAccount('${op.id}')">${op.active === false ? "Aktifkan" : "Nonaktif"}</button>
+        <button class="red" onclick="deleteOperatorAccount('${op.id}')">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function makeOperatorId(){
+  return "op" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+
+
+function getSportRule(mode){
+  mode = String(mode || "badminton").toLowerCase();
+
+  if(mode === "badminton"){
+    return {
+      mode:"badminton",
+      sport_rule:"set",
+      sport_rule_label:"Badminton - Best of 3 Set",
+      period:"Set 1",
+      point_target:21,
+      max_point:30,
+      win_by:2,
+      best_of:3,
+      description:"Badminton: Best of 3 set, rally point 21, deuce unggul 2, maksimal 30. Pemenang match jika menang 2 set."
+    };
+  }
+
+  if(mode === "voli"){
+    return {
+      mode:"voli",
+      sport_rule:"set",
+      sport_rule_label:"Voli - Best of 3 Set",
+      period:"Set 1",
+      point_target:25,
+      max_point:99,
+      win_by:2,
+      best_of:3,
+      description:"Voli: Sistem set, target 25 poin, harus unggul 2 poin. Pemenang match jika menang 2 set."
+    };
+  }
+
+  if(mode === "futsal"){
+    return {
+      mode:"futsal",
+      sport_rule:"period",
+      sport_rule_label:"Futsal - Babak 1 & Babak 2",
+      period:"Babak 1",
+      point_target:0,
+      max_point:999,
+      win_by:0,
+      best_of:0,
+      description:"Futsal: Sistem babak, score gol bebas. Tidak memakai set otomatis."
+    };
+  }
+
+  return {
+    mode,
+    sport_rule:"score",
+    sport_rule_label:"Score Bebas",
+    period:"Babak 1",
+    point_target:0,
+    max_point:999,
+    win_by:0,
+    best_of:0,
+    description:"Mode score bebas."
+  };
+}
+
+window.previewSportRule = function(){
+  const modeEl = $("mode");
+  const infoEl = $("sportRuleInfo");
+  if(!modeEl || !infoEl) return;
+  const rule = getSportRule(modeEl.value);
+  infoEl.innerText = rule.description;
+}
+
+function isSetSportMode(s){
+  return String(s.sport_rule || "").toLowerCase() === "set" || ["badminton","voli"].includes(String(s.mode || "").toLowerCase());
+}
+
+function checkSetSportWinner(a, b, s){
+  a = Number(a || 0);
+  b = Number(b || 0);
+
+  const target = Number(s.point_target || (String(s.mode || "").toLowerCase() === "voli" ? 25 : 21));
+  const maxPoint = Number(s.max_point || (String(s.mode || "").toLowerCase() === "badminton" ? 30 : 99));
+  const winBy = Number(s.win_by || 2);
+
+  if(a < target && b < target) return null;
+
+  if(maxPoint > 0){
+    if(a >= maxPoint && a > b) return "a";
+    if(b >= maxPoint && b > a) return "b";
+  }
+
+  if(a >= target && a - b >= winBy) return "a";
+  if(b >= target && b - a >= winBy) return "b";
+
+  return null;
+}
+
+function getSetSportPointStatus(s){
+  if(!isSetSportMode(s) || s.match_finished) return "";
+
+  const a = Number(s.score_a || 0);
+  const b = Number(s.score_b || 0);
+  const setA = Number(s.set_a || 0);
+  const setB = Number(s.set_b || 0);
+  const target = Number(s.point_target || 21);
+  const maxPoint = Number(s.max_point || 30);
+  const bestOf = Number(s.best_of || 3);
+  const needSetWin = Math.ceil(bestOf / 2);
+
+  if(maxPoint > 0 && a === maxPoint - 1 && b === maxPoint - 1) return "FINAL POINT";
+
+  let leader = null;
+
+  if(a === target - 1 && b <= target - 3) leader = "a";
+  if(b === target - 1 && a <= target - 3) leader = "b";
+
+  if(a >= target - 1 && a < maxPoint && a - b === 1) leader = "a";
+  if(b >= target - 1 && b < maxPoint && b - a === 1) leader = "b";
+
+  if(maxPoint > 0){
+    if(a === maxPoint - 1 && b <= maxPoint - 2) leader = "a";
+    if(b === maxPoint - 1 && a <= maxPoint - 2) leader = "b";
+  }
+
+  if(!leader) return "";
+
+  const willWinMatch = leader === "a" ? (setA + 1 >= needSetWin) : (setB + 1 >= needSetWin);
+  const teamName = leader === "a" ? s.team_a : s.team_b;
+  return `${willWinMatch ? "MATCH POINT" : "SET POINT"} ${teamName}`;
+}
+
+function sportInfoText(s){
+  if(!isSetSportMode(s)){
+    return `${s.sport_rule_label || s.mode || ""} • ${s.period || ""}`;
+  }
+
+  const setA = Number(s.set_a || 0);
+  const setB = Number(s.set_b || 0);
+  const currentSet = Number(s.current_set || 1);
+
+  if(s.match_finished){
+    return `PEMENANG MATCH: ${s.match_winner || "-"} • SET ${setA} - ${setB}`;
+  }
+
+  const pointStatus = getSetSportPointStatus(s);
+  return `SET ${currentSet} • SET ${s.team_a} ${setA} - ${setB} ${s.team_b}${pointStatus ? " • " + pointStatus : ""}`;
+}
+
+async function applySetSportScore(team, delta){
+  const s = currentState;
+
+  if(s.match_finished && delta > 0){
+    alert("Match sudah selesai. Klik Match Baru untuk mulai pertandingan baru.");
+    return;
+  }
+
+  const maxPoint = Number(s.max_point || 99);
+
+  let newA = Number(s.score_a || 0);
+  let newB = Number(s.score_b || 0);
+
+  if(team === "a") newA = Math.max(0, Math.min(maxPoint, newA + delta));
+  if(team === "b") newB = Math.max(0, Math.min(maxPoint, newB + delta));
+
+  let patch = {
+    score_a:newA,
+    score_b:newB,
+    last_point_status:getSetSportPointStatus({...s, score_a:newA, score_b:newB})
+  };
+
+  if(delta <= 0){
+    await update(ref(db, "scoreboard/state"), patch);
+    return;
+  }
+
+  const setWinner = checkSetSportWinner(newA, newB, s);
+
+  if(setWinner){
+    const setA = Number(s.set_a || 0) + (setWinner === "a" ? 1 : 0);
+    const setB = Number(s.set_b || 0) + (setWinner === "b" ? 1 : 0);
+    const setScores = Array.isArray(s.set_scores) ? [...s.set_scores] : [];
+    const winnerName = setWinner === "a" ? s.team_a : s.team_b;
+    const bestOf = Number(s.best_of || 3);
+    const needSetWin = Math.ceil(bestOf / 2);
+
+    setScores.push({
+      set:Number(s.current_set || 1),
+      score_a:newA,
+      score_b:newB,
+      winner:setWinner,
+      winner_name:winnerName,
+      saved_at:new Date().toLocaleString("id-ID")
+    });
+
+    const matchFinished = setA >= needSetWin || setB >= needSetWin;
+
+    if(matchFinished){
+      patch = {
+        score_a:newA,
+        score_b:newB,
+        set_a:setA,
+        set_b:setB,
+        set_scores:setScores,
+        match_finished:true,
+        match_winner:winnerName,
+        last_point_status:`PEMENANG MATCH ${winnerName}`
+      };
+      speakText(`Pemenang match ${winnerName}`);
+    }else{
+      patch = {
+        score_a:0,
+        score_b:0,
+        set_a:setA,
+        set_b:setB,
+        set_scores:setScores,
+        current_set:Number(s.current_set || 1) + 1,
+        period:`Set ${Number(s.current_set || 1) + 1}`,
+        match_finished:false,
+        match_winner:"",
+        last_point_status:`SET ${s.current_set || 1} dimenangkan ${winnerName}`
+      };
+      speakText(`Set ${s.current_set || 1} dimenangkan ${winnerName}`);
+    }
+  }
+
+  await update(ref(db, "scoreboard/state"), patch);
+  if(patch.match_finished && currentState.active_match_id && boolVal(currentState.auto_bracket_winner)){
+    setTimeout(() => window.updateActiveBracketWinner(true), 600);
+  }
+}
+
+
+function isBadmintonMode(s){
+  return String(s.mode || "").toLowerCase() === "badminton";
+}
+
+function checkBadmintonSetWinner(a, b){
+  return checkSetSportWinner(a, b, {...currentState, mode:"badminton", sport_rule:"set", point_target:21, max_point:30, win_by:2, best_of:3});
+}
+
+function getBadmintonPointStatus(s){
+  return getSetSportPointStatus({...s, mode:"badminton", sport_rule:"set", point_target:21, max_point:30, win_by:2, best_of:3});
+}
+
+function badmintonInfoText(s){
+  return sportInfoText(s);
+}
+
+async function applyBadmintonScore(team, delta){
+  await applySetSportScore(team, delta);
+}
+
+function renderAll(){
+  const s = currentState;
+  if(boolVal(s.voice_enabled)) voiceEnabled = true;
+  const t = formatTime(timerValue(s));
+
+  if(!$("controlPage").classList.contains("hidden")){
+    setInputValue("eventName", s.event_name);
+    setInputValue("mode", s.mode);
+    previewSportRule();
+    setInputValue("period", s.period);
+    setInputValue("teamA", s.team_a);
+    setInputValue("teamB", s.team_b);
+    setInputValue("playerA1", s.player_a1 || "");
+    setInputValue("playerA2", s.player_a2 || "");
+    setInputValue("playerB1", s.player_b1 || "");
+    setInputValue("playerB2", s.player_b2 || "");
+    setInputValue("colorA", s.color_a);
+    setInputValue("colorB", s.color_b);
+    setInputValue("logoA", s.logo_a || "");
+    setInputValue("logoB", s.logo_b || "");
+    setInputValue("timerMode", s.timer_mode || "stopwatch");
+    setInputValue("settingVoiceEnabled", boolVal(s.voice_enabled) ? "1" : "0");
+    setInputValue("settingVoiceScore", boolVal(s.voice_score_enabled) ? "1" : "0");
+    setInputValue("settingVoiceStatus", boolVal(s.voice_status_enabled) ? "1" : "0");
+    setInputValue("settingVoiceRate", s.voice_rate ?? 0.95);
+    setInputValue("settingVoiceDelay", s.voice_delay_ms ?? 0);
+    setInputValue("settingBuzzerVolume", s.buzzer_volume ?? 0.12);
+    setInputValue("sponsorLeft", s.sponsor_left || "");
+    setInputValue("sponsorRight", s.sponsor_right || "");
+    setInputValue("sponsorLogoLeft", s.sponsor_logo_left || "");
+    setInputValue("sponsorLogoRight", s.sponsor_logo_right || "");
+    setInputValue("runningText", s.running_text || "");
+    renderOperatorLoginOptions();
+    renderOperatorList();
+    $("scoreA").innerText = s.score_a;
+    $("scoreB").innerText = s.score_b;
+    $("titleA").innerText = s.team_a;
+    $("titleB").innerText = s.team_b;
+    if($("setMiniA")) $("setMiniA").innerText = `Set menang: ${s.set_a || 0}`;
+    if($("setMiniB")) $("setMiniB").innerText = `Set menang: ${s.set_b || 0}`;
+    if($("matchInfoControl")) $("matchInfoControl").innerText = sportInfoText(s) || `${s.mode} • ${s.period}`;
+    $("timerControl").innerText = t + (String(s.timer_mode || "stopwatch") === "countdown" ? " ↓" : " ↑");
+  }
+  renderOperatorMode();
+
+  if(!$("displayPage").classList.contains("hidden")){
+    $("displayEventName").innerText = s.event_name;
+    $("displayMode").innerText = s.mode;
+    $("displayPeriod").innerText = s.period;
+    $("displayTeamA").innerText = s.team_a;
+    $("displayTeamB").innerText = s.team_b;
+    const pa = [s.player_a1, s.player_a2].filter(Boolean).join(" / ");
+    const pb = [s.player_b1, s.player_b2].filter(Boolean).join(" / ");
+    $("displayPlayersA").innerText = String(s.mode || "").toLowerCase() === "badminton" ? pa : "";
+    $("displayPlayersB").innerText = String(s.mode || "").toLowerCase() === "badminton" ? pb : "";
+    $("displayScoreA").innerText = s.score_a;
+    $("displayScoreB").innerText = s.score_b;
+    $("displayTimer").innerText = t;
+    if($("displaySetStatus")) $("displaySetStatus").innerText = isSetSportMode(s) ? `SET ${s.current_set || 1} • ${s.set_a || 0} - ${s.set_b || 0}` : String(s.period || "");
+    if($("displayMatchStatus")) $("displayMatchStatus").innerText = badmintonInfoText(s).replace(/^SET\s+\d+\s+•\s+/, "");
+    announceScoreIfChanged(s);
+    $("panelA").style.background = `linear-gradient(135deg, ${s.color_a}, #020617)`;
+    $("panelB").style.background = `linear-gradient(135deg, ${s.color_b}, #020617)`;
+
+    if(s.logo_a){ $("displayLogoA").src = s.logo_a; $("displayLogoA").style.display = "block"; } else {$("displayLogoA").style.display = "none";}
+    if(s.logo_b){ $("displayLogoB").src = s.logo_b; $("displayLogoB").style.display = "block"; } else {$("displayLogoB").style.display = "none";}
+
+    if($("displaySponsorLeft")) $("displaySponsorLeft").innerText = s.sponsor_left || "";
+    if($("displaySponsorRight")) $("displaySponsorRight").innerText = s.sponsor_right || "";
+    if($("displayRunningText")) $("displayRunningText").innerText = s.running_text || "";
+    if(s.sponsor_logo_left && $("displaySponsorLogoLeft")){ $("displaySponsorLogoLeft").src = s.sponsor_logo_left; $("displaySponsorLogoLeft").style.display = "block"; }
+    else if($("displaySponsorLogoLeft")){ $("displaySponsorLogoLeft").style.display = "none"; }
+    if(s.sponsor_logo_right && $("displaySponsorLogoRight")){ $("displaySponsorLogoRight").src = s.sponsor_logo_right; $("displaySponsorLogoRight").style.display = "block"; }
+    else if($("displaySponsorLogoRight")){ $("displaySponsorLogoRight").style.display = "none"; }
+
+    if(Number(s.buzzer_id || 0) > lastBuzzer){
+      lastBuzzer = Number(s.buzzer_id || 0);
+      playBuzzer();
+    }
+  }
+}
+
+
+window.enableVoice = function(){
+  voiceEnabled = true;
+  localStorage.setItem("scoreboard_voice_enabled", "1");
+  speakText("Suara scoreboard aktif");
+}
+
+function numberId(n, kosong=false){
+  n = Number(n || 0);
+  if(n === 0) return kosong ? "kosong" : "nol";
+  const dasar = ["nol","satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan","sepuluh","sebelas"];
+  if(n < 12) return dasar[n];
+  if(n < 20) return dasar[n-10] + " belas";
+  if(n < 100){
+    const puluh = Math.floor(n/10);
+    const sisa = n % 10;
+    return dasar[puluh] + " puluh" + (sisa ? " " + dasar[sisa] : "");
+  }
+  return String(n);
+}
+
+function isMatchPoint(s){
+  const status = getSetSportPointStatus(s);
+  if(!status) return null;
+  if(status.includes(s.team_a)) return "a";
+  if(status.includes(s.team_b)) return "b";
+  return status === "FINAL POINT" ? "final" : null;
+}
+
+function speakText(text){
+  const stateVoiceOn = boolVal(currentState.voice_enabled);
+  if(!voiceEnabled && !stateVoiceOn) return;
+  if(!("speechSynthesis" in window)) return;
+  const run = () => {
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "id-ID";
+      u.rate = Number(currentState.voice_rate || 0.95);
+      u.pitch = Number(currentState.voice_pitch || 1);
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  };
+  const delay = Number(currentState.voice_delay_ms || 0);
+  if(delay > 0) setTimeout(run, delay); else run();
+}
+
+function announceScoreIfChanged(s){
+  if($("displayPage").classList.contains("hidden")) return;
+
+  const a = Number(s.score_a || 0);
+  const b = Number(s.score_b || 0);
+
+  if(prevScoreA === null || prevScoreB === null){
+    prevScoreA = a;
+    prevScoreB = b;
+    return;
+  }
+
+  if(a === prevScoreA && b === prevScoreB) return;
+
+  prevScoreA = a;
+  prevScoreB = b;
+
+  const status = getSetSportPointStatus(s);
+  let text = "";
+
+  if(status && boolVal(s.voice_status_enabled)){
+    text = `${status}. ${boolVal(s.voice_score_enabled) ? numberId(a, true) + " " + numberId(b, true) : ""}`;
+  }else if(boolVal(s.voice_score_enabled)){
+    text = `${numberId(a, true)} ${numberId(b, true)}`;
+  }
+  if(!text) return;
+
+  speakText(text);
+}
+
+function playBuzzer(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = 680;
+    gain.gain.value = Math.max(0, Math.min(1, Number(currentState.buzzer_volume ?? 0.12)));
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    setTimeout(()=>osc.stop(), 900);
+    document.body.classList.add("buzzerFlash");
+    setTimeout(()=>document.body.classList.remove("buzzerFlash"), 1600);
+  }catch(e){}
+}
+
+function requireAdmin(){
+  if(!adminOK){
+    alert("Login admin dulu bro");
+    return false;
+  }
+  return true;
+}
+
+function requireControl(){
+  if(adminOK || operatorOK) return true;
+  alert("Login admin atau operator dulu bro");
+  return false;
+}
+
+window.adminLogin = async function(){
+  const pass = $("adminPassword").value;
+  if(pass === currentState.admin_password){
+    adminOK = true;
+    operatorOK = false;
+    currentOperatorId = "";
+    currentOperatorName = "";
+    sessionStorage.setItem("scoreboard_admin_ok", "1");
+    sessionStorage.removeItem("scoreboard_operator_ok");
+    sessionStorage.removeItem("scoreboard_operator_id");
+    sessionStorage.removeItem("scoreboard_operator_name");
+    $("adminPanel").classList.remove("hidden");
+    const loginCard = $("loginCard");
+    if(loginCard) loginCard.classList.add("hidden");
+    await update(ref(db, "scoreboard/state"), {operator_safe_mode:false});
+    saveUiSession();
+  }else{
+    alert("Password admin salah");
+  }
+}
+
+window.operatorLogin = async function(){
+  const id = $("operatorLoginName") ? $("operatorLoginName").value : "";
+  const pass = $("operatorPassword") ? $("operatorPassword").value : "";
+  const op = getOperators().find(x => x.id === id && x.active !== false);
+  if(!op) return alert("Operator tidak ditemukan / nonaktif");
+  if(pass !== op.password) return alert("Password operator salah");
+
+  adminOK = false;
+  operatorOK = true;
+  currentOperatorId = op.id;
+  currentOperatorName = op.name || "Operator";
+  sessionStorage.removeItem("scoreboard_admin_ok");
+  sessionStorage.setItem("scoreboard_operator_ok", "1");
+  sessionStorage.setItem("scoreboard_operator_id", currentOperatorId);
+  sessionStorage.setItem("scoreboard_operator_name", currentOperatorName);
+  $("adminPanel").classList.remove("hidden");
+  const loginCard = $("loginCard");
+  if(loginCard) loginCard.classList.add("hidden");
+  await update(ref(db, "scoreboard/state"), {operator_safe_mode:true});
+  openMenu("menuCounter", document.querySelector(".menuBtn"));
+  saveUiSession();
+}
+
+window.setMatch = function(){
+  if(!requireAdmin()) return;
+  const rule = getSportRule($("mode").value);
+
+  update(ref(db, "scoreboard/state"), {
+    event_name:($("eventName").value || DEFAULT_STATE.event_name).trim(),
+    mode:rule.mode,
+    period:rule.period,
+    sport_rule:rule.sport_rule,
+    sport_rule_label:rule.sport_rule_label,
+    point_target:rule.point_target,
+    max_point:rule.max_point,
+    win_by:rule.win_by,
+    best_of:rule.best_of,
+    score_a:0,
+    score_b:0,
+    set_a:0,
+    set_b:0,
+    current_set:1,
+    set_scores:[],
+    match_finished:false,
+    match_winner:"",
+    last_point_status:""
+  });
+}
+
+window.setNames = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    team_a:$("teamA").value || "TEAM A",
+    team_b:$("teamB").value || "TEAM B"
+  });
+}
+
+window.setPlayers = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    player_a1:$("playerA1").value.trim(),
+    player_a2:$("playerA2").value.trim(),
+    player_b1:$("playerB1").value.trim(),
+    player_b2:$("playerB2").value.trim()
+  });
+}
+
+window.setVisual = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {
+    color_a:$("colorA").value,
+    color_b:$("colorB").value,
+    logo_a:$("logoA").value.trim(),
+    logo_b:$("logoB").value.trim()
+  });
+}
+
+window.changeScore = async function(team, delta){
+  if(!requireControl()) return;
+
+  if(isSetSportMode(currentState)){
+    await applySetSportScore(team, delta);
+    return;
+  }
+
+  const key = team === "a" ? "score_a" : "score_b";
+  const val = Math.max(0, Number(currentState[key] || 0) + delta);
+  update(ref(db, "scoreboard/state"), {[key]:val});
+}
+
+window.resetScore = function(){
+  if(!requireAdmin()) return;
+  update(ref(db, "scoreboard/state"), {score_a:0, score_b:0, last_point_status:""});
+}
+
+
+window.resetSetSportMatch = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Reset score, set, dan status match?")) return;
+  await update(ref(db, "scoreboard/state"), {
+    score_a:0,
+    score_b:0,
+    set_a:0,
+    set_b:0,
+    current_set:1,
+    set_scores:[],
+    match_finished:false,
+    match_winner:"",
+    last_point_status:""
+  });
+}
+
+window.timerSet = function(){
+  if(!requireControl()) return;
+  const minutes = Number($("timerMinutes").value || 0);
+  const mode = $("timerMode") ? $("timerMode").value : "stopwatch";
+  update(ref(db, "scoreboard/state"), {
+    timer_seconds: minutes * 60,
+    timer_mode:mode,
+    timer_running:false,
+    timer_started_at:0
+  });
+}
+
+window.timerStart = function(){
+  if(!requireControl()) return;
+  if(currentState.timer_running) return;
+  update(ref(db, "scoreboard/state"), {
+    timer_running:true,
+    timer_started_at:nowSec()
+  });
+}
+
+window.timerPause = function(){
+  if(!requireControl()) return;
+  update(ref(db, "scoreboard/state"), {
+    timer_seconds:timerValue(currentState),
+    timer_running:false,
+    timer_started_at:0
+  });
+}
+
+window.timerReset = function(){
+  if(!requireControl()) return;
+  update(ref(db, "scoreboard/state"), {
+    timer_seconds:0,
+    timer_running:false,
+    timer_started_at:0
+  });
+}
+
+window.sendBuzzer = function(){
+  if(!requireControl()) return;
+  update(ref(db, "scoreboard/state"), {
+    buzzer_id:Date.now()
+  });
+}
+
+
+function buildSetHistorySnapshot(s){
+  const sets = Array.isArray(s.set_scores) ? [...s.set_scores] : [];
+
+  // Kalau match belum selesai dan masih ada score berjalan,
+  // catat set yang sedang berlangsung supaya history tetap lengkap.
+  const currentA = Number(s.score_a || 0);
+  const currentB = Number(s.score_b || 0);
+  const currentSet = Number(s.current_set || 1);
+
+  const alreadyRecorded = sets.some(x => Number(x.set || 0) === currentSet);
+
+  if(!s.match_finished && !alreadyRecorded && (currentA > 0 || currentB > 0)){
+    sets.push({
+      set:currentSet,
+      score_a:currentA,
+      score_b:currentB,
+      winner:"",
+      winner_name:"",
+      status:"sedang berjalan",
+      saved_at:new Date().toLocaleString("id-ID")
+    });
+  }
+
+  return sets;
+}
+
+function renderSetHistoryRows(h){
+  const sets = Array.isArray(h.set_history)
+    ? h.set_history
+    : (Array.isArray(h.set_scores) ? h.set_scores : []);
+
+  if(!sets.length) return "";
+
+  return `
+    <div class="setHistoryList">
+      ${sets.map(st => {
+        const label = `Set ${st.set || "-"}`;
+        const score = `${h.team_a || "TEAM A"} ${st.score_a ?? 0} - ${st.score_b ?? 0} ${h.team_b || "TEAM B"}`;
+        const winner = st.winner_name
+          ? `<span class="setHistoryWinner">Win: ${st.winner_name}</span>`
+          : `<span class="setHistoryLive">${st.status || "Belum selesai"}</span>`;
+        return `<div class="setHistoryRow"><div>${label}</div><div>${score}</div><div>${winner}</div></div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+window.saveHistory = async function(){
+  if(!requireAdmin()) return;
+
+  const setHistory = buildSetHistorySnapshot(currentState);
+  const s = {
+    ...currentState,
+    timer_seconds:timerValue(currentState),
+    set_history:setHistory,
+    final_set_score:`${currentState.set_a || 0}-${currentState.set_b || 0}`,
+    final_point_score:`${currentState.score_a || 0}-${currentState.score_b || 0}`,
+    saved_at:new Date().toLocaleString("id-ID")
+  };
+
+  await push(ref(db, "scoreboard/history"), s);
+  alert("History pertandingan berhasil disimpan lengkap per set/babak");
+}
+
+window.newMatch = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Simpan history dan mulai match baru?")) return;
+  await window.saveHistory();
+  await set(ref(db, "scoreboard/state"), {
+    ...DEFAULT_STATE,
+    admin_password:currentState.admin_password,
+    tournament_entries:currentState.tournament_entries || [],
+    tournament_matches:currentState.tournament_matches || [],
+    tournament_note:currentState.tournament_note || "",
+    sponsor_left:currentState.sponsor_left || "",
+    sponsor_right:currentState.sponsor_right || "",
+    sponsor_logo_left:currentState.sponsor_logo_left || "",
+    sponsor_logo_right:currentState.sponsor_logo_right || "",
+    running_text:currentState.running_text || "",
+    voice_enabled:currentState.voice_enabled || false,
+    voice_score_enabled:currentState.voice_score_enabled ?? true,
+    voice_status_enabled:currentState.voice_status_enabled ?? true,
+    voice_rate:currentState.voice_rate || 0.95,
+    voice_delay_ms:currentState.voice_delay_ms || 0,
+    buzzer_volume:currentState.buzzer_volume ?? 0.12,
+    operator_safe_mode:currentState.operator_safe_mode || false,
+    operators:getOperators()
+  });
+}
+
+
+window.logoutAdmin = function(){
+  adminOK = false;
+  operatorOK = false;
+  currentOperatorId = "";
+  currentOperatorName = "";
+  sessionStorage.removeItem("scoreboard_admin_ok");
+  sessionStorage.removeItem("scoreboard_operator_ok");
+  sessionStorage.removeItem("scoreboard_operator_id");
+  sessionStorage.removeItem("scoreboard_operator_name");
+  sessionStorage.removeItem("scoreboard_active_menu");
+  Object.keys(sessionStorage).forEach(k => {
+    if(k.startsWith("scoreboard_active_sub_")) sessionStorage.removeItem(k);
+  });
+  $("adminPanel").classList.add("hidden");
+  const loginCard = $("loginCard");
+  if(loginCard) loginCard.classList.remove("hidden");
+  alert("Admin logout");
+}
+
+window.enableOperatorSafeMode = async function(){
+  if(!requireAdmin()) return;
+  await update(ref(db, "scoreboard/state"), {operator_safe_mode:true});
+  alert("Mode Operator Aman aktif");
+}
+
+window.disableOperatorSafeModePrompt = async function(){
+  const pass = prompt("Masukkan password admin untuk keluar dari Mode Operator Aman:");
+  if(pass === null) return;
+  if(pass !== currentState.admin_password) return alert("Password salah");
+  adminOK = true;
+  operatorOK = false;
+  currentOperatorId = "";
+  currentOperatorName = "";
+  sessionStorage.setItem("scoreboard_admin_ok", "1");
+  sessionStorage.removeItem("scoreboard_operator_ok");
+  sessionStorage.removeItem("scoreboard_operator_id");
+  sessionStorage.removeItem("scoreboard_operator_name");
+  await update(ref(db, "scoreboard/state"), {operator_safe_mode:false});
+  alert("Mode Operator Aman dimatikan");
+}
+
+window.saveSoundSettings = async function(){
+  if(!requireAdmin()) return;
+  await update(ref(db, "scoreboard/state"), {
+    voice_enabled:$("settingVoiceEnabled").value === "1",
+    voice_score_enabled:$("settingVoiceScore").value === "1",
+    voice_status_enabled:$("settingVoiceStatus").value === "1",
+    voice_rate:Number($("settingVoiceRate").value || 0.95),
+    voice_delay_ms:Number($("settingVoiceDelay").value || 0),
+    buzzer_volume:Number($("settingBuzzerVolume").value || 0.12)
+  });
+  voiceEnabled = $("settingVoiceEnabled").value === "1";
+  localStorage.setItem("scoreboard_voice_enabled", voiceEnabled ? "1" : "0");
+  alert("Setting sound disimpan");
+}
+
+window.testSoundSettings = function(){
+  voiceEnabled = true;
+  speakText("Test suara scoreboard. Satu kosong. Match point team A.");
+  setTimeout(playBuzzer, 700);
+}
+
+window.saveTvVisualSettings = async function(){
+  if(!requireAdmin()) return;
+  await update(ref(db, "scoreboard/state"), {
+    sponsor_left:$("sponsorLeft").value.trim(),
+    sponsor_right:$("sponsorRight").value.trim(),
+    sponsor_logo_left:$("sponsorLogoLeft").value.trim(),
+    sponsor_logo_right:$("sponsorLogoRight").value.trim(),
+    running_text:$("runningText").value.trim()
+  });
+  alert("Sponsor dan running text TV sudah diupdate");
+}
+
+window.changePassword = function(){
+  if(!requireAdmin()) return;
+  const pass = $("newAdminPassword").value.trim();
+  if(pass.length < 4) return alert("Password minimal 4 karakter");
+  update(ref(db, "scoreboard/state"), {admin_password:pass});
+  $("newAdminPassword").value = "";
+  alert("Password admin sudah diganti");
+}
+
+window.addOperatorAccount = async function(){
+  if(!requireAdmin()) return;
+  const name = ($("operatorNameInput")?.value || "").trim();
+  const password = ($("operatorPassInput")?.value || "").trim();
+  if(!name) return alert("Nama operator wajib diisi");
+  if(password.length < 4) return alert("Password operator minimal 4 karakter");
+  const ops = getOperators();
+  if(ops.some(op => normalizeText(op.name) === normalizeText(name))){
+    return alert("Nama operator sudah ada");
+  }
+  ops.push({id:makeOperatorId(), name, password, active:true});
+  await saveOperators(ops);
+  $("operatorNameInput").value = "";
+  $("operatorPassInput").value = "";
+  alert("Operator berhasil ditambahkan");
+}
+
+window.editOperatorAccount = async function(id){
+  if(!requireAdmin()) return;
+  const ops = getOperators();
+  const op = ops.find(x => x.id === id);
+  if(!op) return alert("Operator tidak ditemukan");
+  const name = prompt("Nama operator:", op.name || "");
+  if(name === null) return;
+  const password = prompt("Password operator:", op.password || "");
+  if(password === null) return;
+  const cleanName = name.trim();
+  const cleanPass = password.trim();
+  if(!cleanName) return alert("Nama operator wajib diisi");
+  if(cleanPass.length < 4) return alert("Password operator minimal 4 karakter");
+  if(ops.some(x => x.id !== id && normalizeText(x.name) === normalizeText(cleanName))){
+    return alert("Nama operator sudah dipakai");
+  }
+  op.name = cleanName;
+  op.password = cleanPass;
+  await saveOperators(ops);
+  alert("Operator berhasil diedit");
+}
+
+window.toggleOperatorAccount = async function(id){
+  if(!requireAdmin()) return;
+  const ops = getOperators();
+  const op = ops.find(x => x.id === id);
+  if(!op) return alert("Operator tidak ditemukan");
+  op.active = op.active === false ? true : false;
+  await saveOperators(ops);
+}
+
+window.deleteOperatorAccount = async function(id){
+  if(!requireAdmin()) return;
+  const ops = getOperators();
+  const op = ops.find(x => x.id === id);
+  if(!op) return alert("Operator tidak ditemukan");
+  if(!confirm(`Hapus operator ${op.name}?`)) return;
+  await saveOperators(ops.filter(x => x.id !== id));
+}
+
+window.clearHistory = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus semua history pertandingan tersimpan?")) return;
+  await remove(ref(db, "scoreboard/history"));
+  alert("History berhasil dihapus");
+}
+
+window.resetAllData = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Reset semua data scoreboard? Score, team, pemain, timer, warna, logo akan kembali default.")) return;
+  const keepPassword = currentState.admin_password || DEFAULT_STATE.admin_password;
+  await set(ref(db, "scoreboard/state"), {...DEFAULT_STATE, admin_password:keepPassword, operators:getOperators()});
+  await remove(ref(db, "scoreboard/history"));
+  alert("Semua data berhasil direset");
+}
+
+
+
+function entryDisplayName(e){
+  if(!e) return "BYE";
+  const players = [e.player1, e.player2].filter(Boolean).join(" / ");
+  return players ? `${e.team} - ${players}` : e.team;
+}
+
+function sameTeamConflict(a, b){
+  if(!a || !b) return false;
+  return String(a.team || "").trim().toLowerCase() === String(b.team || "").trim().toLowerCase();
+}
+
+function shuffleArray(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function countFirstRoundConflicts(arr){
+  let c = 0;
+  for(let i=0;i<arr.length;i+=2){
+    if(sameTeamConflict(arr[i], arr[i+1])) c++;
+  }
+  return c;
+}
+
+function makeBestRandomOrder(entries){
+  let best = shuffleArray(entries);
+  let bestConflict = countFirstRoundConflicts(best);
+
+  for(let i=0;i<700;i++){
+    const s = shuffleArray(entries);
+    const c = countFirstRoundConflicts(s);
+    if(c < bestConflict){
+      best = s;
+      bestConflict = c;
+      if(c === 0) break;
+    }
+  }
+  return {order:best, conflict:bestConflict};
+}
+
+function getRoundName(round){
+  round = Number(round || 1);
+  if(round === 1) return "Ronde 1";
+  if(round === 2) return "Ronde 2";
+  if(round === 3) return "Semi Final / Ronde 3";
+  if(round >= 4) return `Ronde ${round}`;
+  return `Ronde ${round}`;
+}
+
+function getLatestRound(matches){
+  const arr = Array.isArray(matches) ? matches : [];
+  if(arr.length === 0) return 0;
+  return Math.max(...arr.map(m => Number(m.round || 1)));
+}
+
+function getRoundMatches(round){
+  const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+  return matches.filter(m => Number(m.round || 1) === Number(round));
+}
+
+function getMatchWinnerEntry(m){
+  if(!m || !m.winner) return null;
+  const winnerText = String(m.winner || "").trim();
+  if(m.side_a && winnerText === String(m.side_a.team || "").trim()) return m.side_a;
+  if(m.side_b && winnerText === String(m.side_b.team || "").trim()) return m.side_b;
+
+  // fallback cari dari nama pemain/display
+  const aText = entryDisplayName(m.side_a);
+  const bText = entryDisplayName(m.side_b);
+  if(winnerText === aText) return m.side_a;
+  if(winnerText === bText) return m.side_b;
+
+  return null;
+}
+
+window.addTournamentEntry = async function(){
+  if(!requireAdmin()) return;
+
+  const team = $("tourTeam").value.trim();
+  const player1 = $("tourPlayer1").value.trim();
+  const player2 = $("tourPlayer2").value.trim();
+  const color = $("tourColor").value || "#2563eb";
+  const logo = $("tourLogo").value.trim();
+
+  if(!team) return alert("Nama team/club wajib diisi");
+  if(!player1) return alert("Nama pemain 1 wajib diisi");
+
+  const entries = Array.isArray(currentState.tournament_entries) ? [...currentState.tournament_entries] : [];
+  const duplicate = entries.some(e => normalizeText(e.team) === normalizeText(team) && normalizeText(e.player1) === normalizeText(player1) && normalizeText(e.player2) === normalizeText(player2));
+  if(duplicate) return alert("Peserta duplikat. Team dan nama pemain sudah ada di daftar.");
+  entries.push({
+    id:"E" + Date.now() + Math.floor(Math.random()*999),
+    team,
+    player1,
+    player2,
+    color,
+    logo
+  });
+
+  await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
+  $("tourTeam").value = "";
+  $("tourPlayer1").value = "";
+  $("tourPlayer2").value = "";
+  $("tourLogo").value = "";
+}
+
+window.deleteTournamentEntry = async function(id){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus peserta ini?")) return;
+  const entries = (currentState.tournament_entries || []).filter(e => e.id !== id);
+  await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
+}
+
+window.editTournamentEntry = async function(id){
+  if(!requireAdmin()) return;
+  const entries = Array.isArray(currentState.tournament_entries) ? [...currentState.tournament_entries] : [];
+  const idx = entries.findIndex(e => e.id === id);
+  if(idx < 0) return;
+
+  const e = entries[idx];
+  const team = prompt("Nama Team / Club:", e.team || "");
+  if(team === null) return;
+  const p1 = prompt("Nama Pemain 1:", e.player1 || "");
+  if(p1 === null) return;
+  const p2 = prompt("Nama Pemain 2:", e.player2 || "");
+  if(p2 === null) return;
+  const logo = prompt("URL Logo:", e.logo || "");
+  if(logo === null) return;
+
+  if(!team.trim()) return alert("Nama team/club wajib diisi");
+  if(!p1.trim()) return alert("Nama pemain 1 wajib diisi");
+  const duplicate = entries.some((x, i) => i !== idx && normalizeText(x.team) === normalizeText(team) && normalizeText(x.player1) === normalizeText(p1) && normalizeText(x.player2) === normalizeText(p2));
+  if(duplicate) return alert("Peserta duplikat. Team dan nama pemain sudah ada di daftar.");
+  entries[idx] = {...e, team:team.trim(), player1:p1.trim(), player2:p2.trim(), logo:logo.trim()};
+  await update(ref(db, "scoreboard/state"), {tournament_entries:entries});
+}
+
+window.generateTournamentBracket = async function(){
+  if(!requireAdmin()) return;
+  const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
+  if(entries.length < 2) return alert("Minimal 2 peserta untuk membuat bagan");
+  const invalid = entries.find(e => !String(e.team || "").trim() || !String(e.player1 || "").trim());
+  if(invalid) return alert("Masih ada peserta dengan nama team atau pemain 1 kosong.");
+  const seen = new Set();
+  for(const e of entries){
+    const key = [e.team, e.player1, e.player2].map(normalizeText).join("|");
+    if(seen.has(key)) return alert("Masih ada peserta duplikat. Hapus/edit dulu sebelum generate bagan.");
+    seen.add(key);
+  }
+  if(currentState.tournament_matches && currentState.tournament_matches.length){
+    if(!confirm("Bagan lama akan diganti dari awal. Lanjut?")) return;
+  }
+
+  const result = makeBestRandomOrder(entries);
+  const order = result.order;
+  const matches = [];
+
+  for(let i=0;i<order.length;i+=2){
+    const sideA = order[i] || null;
+    const sideB = order[i+1] || null;
+    matches.push({
+      id:"M" + Date.now() + "_" + i,
+      round:1,
+      no:(i/2)+1,
+      side_a:sideA,
+      side_b:sideB,
+      score_a:0,
+      score_b:0,
+      winner:sideB ? "" : (sideA ? sideA.team : ""),
+      status:sideB ? "scheduled" : "bye",
+      finished_at:sideB ? "" : new Date().toLocaleString("id-ID")
+    });
+  }
+
+  const note = result.conflict === 0
+    ? "Bagan berhasil dibuat. Tidak ada peserta dari team/club yang sama bertemu di ronde awal."
+    : `Bagan dibuat, tetapi masih ada ${result.conflict} pasangan dari team/club yang sama karena komposisi peserta tidak memungkinkan dihindari semua.`;
+
+  await update(ref(db, "scoreboard/state"), {
+    tournament_matches:matches,
+    tournament_note:note,
+    active_match_id:""
+  });
+  alert(note);
+}
+
+window.generateNextRound = async function(){
+  if(!requireAdmin()) return;
+
+  const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
+  if(matches.length === 0) return alert("Belum ada bagan. Generate ronde 1 dulu.");
+
+  const latestRound = getLatestRound(matches);
+  const roundMatches = matches.filter(m => Number(m.round || 1) === latestRound);
+
+  const unfinished = roundMatches.filter(m => !m.winner);
+  if(unfinished.length > 0){
+    return alert(`Ronde ${latestRound} belum selesai. Masih ada ${unfinished.length} match belum punya winner.`);
+  }
+
+  const winners = roundMatches.map(getMatchWinnerEntry).filter(Boolean);
+
+  if(winners.length <= 1){
+    const champion = winners[0] ? entryDisplayName(winners[0]) : "-";
+    await update(ref(db, "scoreboard/state"), {
+      tournament_note:`Turnamen selesai. Juara: ${champion}`
+    });
+    alert(`Turnamen selesai. Juara: ${champion}`);
+    return;
+  }
+
+  const nextRound = latestRound + 1;
+  const result = makeBestRandomOrder(winners);
+  const order = result.order;
+  const newMatches = [];
+
+  for(let i=0;i<order.length;i+=2){
+    const sideA = order[i] || null;
+    const sideB = order[i+1] || null;
+    newMatches.push({
+      id:"M" + Date.now() + "_R" + nextRound + "_" + i,
+      round:nextRound,
+      no:(i/2)+1,
+      side_a:sideA,
+      side_b:sideB,
+      score_a:0,
+      score_b:0,
+      winner:sideB ? "" : (sideA ? sideA.team : ""),
+      status:sideB ? "scheduled" : "bye",
+      finished_at:sideB ? "" : new Date().toLocaleString("id-ID")
+    });
+  }
+
+  const note = winners.length === 2
+    ? `Final berhasil dibuat dari ${winners.length} pemenang.`
+    : `Ronde ${nextRound} berhasil dibuat dari ${winners.length} pemenang.`;
+
+  await update(ref(db, "scoreboard/state"), {
+    tournament_matches:[...matches, ...newMatches],
+    tournament_note:note,
+    active_match_id:""
+  });
+
+  alert(note);
+}
+
+function tournamentBackupObject(){
+  return {
+    exported_at:new Date().toISOString(),
+    tournament_entries:currentState.tournament_entries || [],
+    tournament_matches:currentState.tournament_matches || [],
+    tournament_note:currentState.tournament_note || "",
+    tournament_view_mode:currentState.tournament_view_mode || "list"
+  };
+}
+
+window.exportTournamentData = function(){
+  const txt = JSON.stringify(tournamentBackupObject(), null, 2);
+  const box = $("tournamentImportText");
+  if(box){ box.value = txt; box.focus(); box.select(); }
+}
+
+window.downloadTournamentBackup = function(){
+  const blob = new Blob([JSON.stringify(tournamentBackupObject(), null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "backup-peserta-turnamen-scoreboard.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function parseTournamentImport(raw){
+  const data = JSON.parse(raw);
+  const entries = Array.isArray(data) ? data : (data.tournament_entries || data.entries || []);
+  if(!Array.isArray(entries) || entries.length < 1) throw new Error("JSON tidak berisi tournament_entries");
+  const clean = entries.map((e, i) => ({
+    id:e.id || ("E" + Date.now() + "_" + i),
+    team:String(e.team || e.club || "").trim(),
+    player1:String(e.player1 || e.pemain1 || e.name || "").trim(),
+    player2:String(e.player2 || e.pemain2 || "").trim(),
+    color:e.color || "#2563eb",
+    logo:String(e.logo || "").trim()
+  }));
+  const seen = new Set();
+  for(const e of clean){
+    if(!e.team || !e.player1) throw new Error("Ada peserta dengan team atau pemain 1 kosong");
+    const key = [e.team,e.player1,e.player2].map(normalizeText).join("|");
+    if(seen.has(key)) throw new Error("Ada peserta duplikat di file import");
+    seen.add(key);
+  }
+  return {
+    entries:clean,
+    matches:Array.isArray(data.tournament_matches) ? data.tournament_matches : [],
+    note:data.tournament_note || "Data peserta berhasil diimport",
+    view:data.tournament_view_mode || "list"
+  };
+}
+
+window.importTournamentData = async function(){
+  if(!requireAdmin()) return;
+  try{
+    const raw = $("tournamentImportText").value.trim();
+    if(!raw) return alert("Tempel JSON peserta dulu");
+    const parsed = parseTournamentImport(raw);
+    if(!confirm(`Import ${parsed.entries.length} peserta? Bagan lama akan diganti sesuai data import.`)) return;
+    await update(ref(db, "scoreboard/state"), {
+      tournament_entries:parsed.entries,
+      tournament_matches:parsed.matches,
+      tournament_note:parsed.note,
+      tournament_view_mode:parsed.view,
+      active_match_id:""
+    });
+    alert("Import berhasil");
+  }catch(e){
+    alert("Import gagal: " + e.message);
+  }
+}
+
+window.loadTournamentFile = function(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const box = $("tournamentImportText");
+    if(box) box.value = reader.result;
+  };
+  reader.readAsText(file);
+}
+
+window.clearTournament = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus bagan pertandingan? Daftar peserta tetap disimpan.")) return;
+  await update(ref(db, "scoreboard/state"), {
+    tournament_matches:[],
+    tournament_note:"",
+    tournament_view_mode:"list",
+    active_match_id:""
+  });
+}
+
+window.clearTournamentEntries = async function(){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus semua peserta dan bagan?")) return;
+  await update(ref(db, "scoreboard/state"), {
+    tournament_entries:[],
+    tournament_matches:[],
+    tournament_note:"",
+    tournament_view_mode:"list",
+    active_match_id:""
+  });
+}
+
+window.syncBracketMatch = async function(matchId){
+  if(!requireAdmin()) return;
+
+  const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+  const m = matches.find(x => x.id === matchId);
+  if(!m) return alert("Match tidak ditemukan");
+  if(!m.side_a || !m.side_b) return alert("Match ini BYE, tidak bisa dipakai");
+
+  const a = m.side_a;
+  const b = m.side_b;
+
+  await update(ref(db, "scoreboard/state"), {
+    event_name: currentState.event_name || "TURNAMEN SCOREBOARD",
+    mode:"badminton",
+    period:`Ronde ${m.round} - Match ${m.no}`,
+    team_a:a.team || "TEAM A",
+    team_b:b.team || "TEAM B",
+    player_a1:a.player1 || "",
+    player_a2:a.player2 || "",
+    player_b1:b.player1 || "",
+    player_b2:b.player2 || "",
+    color_a:a.color || "#2563eb",
+    color_b:b.color || "#dc2626",
+    logo_a:a.logo || "",
+    logo_b:b.logo || "",
+    score_a:0,
+    score_b:0,
+    set_a:0,
+    set_b:0,
+    current_set:1,
+    set_scores:[],
+    match_finished:false,
+    match_winner:"",
+    last_point_status:"",
+    active_match_id:matchId
+  });
+
+  alert("Match sudah disinkronkan ke scoreboard");
+}
+
+window.setManualBracketWinner = async function(matchId, side){
+  if(!requireAdmin()) return;
+  const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
+  const idx = matches.findIndex(m => m.id === matchId);
+  if(idx < 0) return;
+
+  const m = matches[idx];
+  const winnerEntry = side === "a" ? m.side_a : m.side_b;
+  if(!winnerEntry) return alert("Peserta tidak ada");
+
+  if(!confirm(`Set winner manual: ${entryDisplayName(winnerEntry)} ?`)) return;
+
+  matches[idx] = {
+    ...m,
+    winner:winnerEntry.team || entryDisplayName(winnerEntry),
+    status:"finished",
+    finished_at:new Date().toLocaleString("id-ID")
+  };
+
+  await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
+}
+
+window.updateActiveBracketWinner = async function(silent=false){
+  if(!silent && !requireAdmin()) return;
+
+  const matchId = currentState.active_match_id;
+  if(!matchId) return silent ? false : alert("Belum ada match dari bagan yang aktif");
+  if(!currentState.match_finished || !currentState.match_winner){
+    return silent ? false : alert("Match belum selesai. Winner bagan bisa diupdate setelah match selesai.");
+  }
+
+  const matches = Array.isArray(currentState.tournament_matches) ? [...currentState.tournament_matches] : [];
+  const idx = matches.findIndex(m => m.id === matchId);
+  if(idx < 0) return silent ? false : alert("Match aktif tidak ditemukan di bagan");
+  if(matches[idx].winner){
+    return silent ? true : alert("Winner bagan untuk match ini sudah terisi.");
+  }
+
+  matches[idx] = {
+    ...matches[idx],
+    score_a:currentState.set_a || 0,
+    score_b:currentState.set_b || 0,
+    winner:currentState.match_winner,
+    status:"finished",
+    finished_at:new Date().toLocaleString("id-ID")
+  };
+
+  await update(ref(db, "scoreboard/state"), {tournament_matches:matches});
+  if(!silent) alert("Winner berhasil diupdate ke bagan. Jika semua match ronde ini selesai, klik Generate Ronde Berikutnya.");
+  return true;
+}
+
+
+window.setTournamentViewMode = async function(){
+  if(!requireAdmin()) return;
+  const mode = $("tournamentViewMode") ? $("tournamentViewMode").value : "list";
+  await update(ref(db, "scoreboard/state"), {tournament_view_mode:mode});
+}
+
+function getTournamentChampion(matches){
+  const arr = Array.isArray(matches) ? matches : [];
+  if(!arr.length) return "";
+  const latestRound = getLatestRound(arr);
+  const latest = arr.filter(m => Number(m.round || 1) === latestRound);
+  if(latest.length === 1 && latest[0].winner) return latest[0].winner;
+  return "";
+}
+
+function renderKnockoutChart(matches){
+  if(!Array.isArray(matches) || matches.length === 0){
+    return `<div class="small">Belum ada bagan. Klik Generate Bagan Acak.</div>`;
+  }
+
+  const champion = getTournamentChampion(matches);
+  const grouped = {};
+  matches.forEach(m => {
+    grouped[m.round || 1] = grouped[m.round || 1] || [];
+    grouped[m.round || 1].push(m);
+  });
+
+  const chart = Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).map(round => {
+    const roundMatches = grouped[round];
+    const allDone = roundMatches.every(m => !!m.winner);
+    return `
+      <div class="bracketRound">
+        <h3>${getRoundName(round)} ${allDone ? "✅" : ""}</h3>
+        ${roundMatches.map(m => {
+          const active = currentState.active_match_id === m.id ? " active" : "";
+          const aWin = m.side_a && m.winner === m.side_a.team;
+          const bWin = m.side_b && m.winner === m.side_b.team;
+          return `
+            <div class="bracketChartMatch${active}">
+              <div class="small">Match ${m.no}${currentState.active_match_id === m.id ? " • AKTIF" : ""}</div>
+              <div class="bracketSlot ${aWin ? "win" : ""} ${!m.side_a ? "bye" : ""}">
+                ${entryDisplayName(m.side_a)}
+              </div>
+              <div class="bracketLine"></div>
+              <div class="bracketSlot ${bWin ? "win" : ""} ${!m.side_b ? "bye" : ""}">
+                ${entryDisplayName(m.side_b)}
+              </div>
+              ${m.winner ? `<div class="winnerBadge">WINNER: ${m.winner}</div>` : ""}
+              <div class="miniActions">
+                <button class="green" onclick="syncBracketMatch('${m.id}')">Pakai</button>
+                <button class="yellow" onclick="updateActiveBracketWinner()">Winner</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }).join("");
+
+  return `
+    ${champion ? `<div class="championBox">🏆 JUARA: ${champion}</div>` : ""}
+    <div class="bracketChart">${chart}</div>
+  `;
+}
+
+function renderTournament(){
+  const entriesBox = $("tournamentEntries");
+  const bracketBox = $("tournamentBracket");
+  const noteBox = $("tournamentNote");
+  const modeSelect = $("tournamentViewMode");
+
+  if(modeSelect && document.activeElement !== modeSelect){
+    modeSelect.value = currentState.tournament_view_mode || "list";
+  }
+
+  if(entriesBox){
+    const entries = Array.isArray(currentState.tournament_entries) ? currentState.tournament_entries : [];
+    if(entries.length === 0){
+      entriesBox.innerHTML = `<div class="small">Belum ada peserta.</div>`;
+    }else{
+      entriesBox.innerHTML = entries.map((e, i) => `
+        <div class="entryItem">
+          <div class="entryName">${i+1}. ${e.team || "-"}</div>
+          <div class="entryPlayers">${[e.player1, e.player2].filter(Boolean).join(" / ")}</div>
+          <div class="miniActions">
+            <button class="yellow" onclick="editTournamentEntry('${e.id}')">Edit</button>
+            <button class="red" onclick="deleteTournamentEntry('${e.id}')">Hapus</button>
+          </div>
+        </div>
+      `).join("");
+    }
+  }
+
+  if(noteBox){
+    noteBox.innerHTML = currentState.tournament_note ? `<div class="warningBadge">${currentState.tournament_note}</div>` : "";
+  }
+
+  if(bracketBox){
+    const matches = Array.isArray(currentState.tournament_matches) ? currentState.tournament_matches : [];
+    const viewMode = currentState.tournament_view_mode || "list";
+
+    if(matches.length === 0){
+      bracketBox.innerHTML = `<div class="small">Belum ada bagan. Klik Generate Bagan Acak.</div>`;
+      return;
+    }
+
+    if(viewMode === "knockout"){
+      bracketBox.innerHTML = renderKnockoutChart(matches);
+      return;
+    }
+
+    const grouped = {};
+    matches.forEach(m => {
+      grouped[m.round || 1] = grouped[m.round || 1] || [];
+      grouped[m.round || 1].push(m);
+    });
+
+    bracketBox.innerHTML = Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).map(round => {
+      const roundMatches = grouped[round];
+      const allDone = roundMatches.every(m => !!m.winner);
+      return `
+        <div class="matchRoundTitle">${getRoundName(round)} ${allDone ? "✅" : ""}</div>
+        ${roundMatches.map(m => {
+          const active = currentState.active_match_id === m.id ? " • AKTIF" : "";
+          const conflict = sameTeamConflict(m.side_a, m.side_b) ? `<div class="warningBadge">Team/club sama</div>` : "";
+          return `
+            <div class="matchItem">
+              <div class="small">Match ${m.no}${active}</div>
+              <div class="matchTeams">
+                <div class="matchTeam">${entryDisplayName(m.side_a)}</div>
+                <div class="matchVs">VS</div>
+                <div class="matchTeam">${entryDisplayName(m.side_b)}</div>
+              </div>
+              ${conflict}
+              ${m.winner ? `<div class="winnerBadge">WINNER: ${m.winner}</div>` : ""}
+              <div class="miniActions">
+                <button class="green" onclick="syncBracketMatch('${m.id}')">Pakai Match</button>
+                <button class="yellow" onclick="updateActiveBracketWinner()">Update Winner</button>
+                <button class="gray" onclick="setManualBracketWinner('${m.id}','a')">Win A</button>
+                <button class="gray" onclick="setManualBracketWinner('${m.id}','b')">Win B</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      `;
+    }).join("");
+  }
+}
+
+function renderHistory(obj){
+  const box = $("history");
+  if(!box) return;
+  const entries = Object.entries(obj || {}).reverse().slice(0,50);
+  box.innerHTML = "";
+  if(entries.length === 0){
+    box.innerHTML = `<div class="small">Belum ada history pertandingan.</div>`;
+    return;
+  }
+  entries.forEach(([key, h])=>{
+    const div = document.createElement("div");
+    div.className = "historyItem";
+    const hpA = [h.player_a1, h.player_a2].filter(Boolean).join(" / ");
+    const hpB = [h.player_b1, h.player_b2].filter(Boolean).join(" / ");
+    div.innerHTML = `
+      <b>${h.saved_at || "-"}</b><br>
+      ${h.event_name || "-"} - ${h.mode || "-"} - ${h.period || "-"}<br>
+      <b>Hasil Match:</b> ${h.team_a || "TEAM A"} <b>${h.set_a ?? 0}</b> - <b>${h.set_b ?? 0}</b> ${h.team_b || "TEAM B"}<br>
+      <span class="small">${hpA} ${hpA || hpB ? "vs" : ""} ${hpB}</span>
+      ${renderSetHistoryRows(h)}
+      <div class="miniActions">
+        <button class="yellow" onclick="editHistoryItem('${key}')">Edit</button>
+        <button class="red" onclick="deleteHistoryItem('${key}')">Hapus</button>
+      </div>
+    `;
+    box.appendChild(div);
+  });
+}
+
+window.deleteHistoryItem = async function(key){
+  if(!requireAdmin()) return;
+  if(!confirm("Hapus history pertandingan ini?")) return;
+  await remove(ref(db, "scoreboard/history/" + key));
+}
+
+window.editHistoryItem = async function(key){
+  if(!requireAdmin()) return;
+  const snap = await get(ref(db, "scoreboard/history/" + key));
+  if(!snap.exists()) return alert("Data history tidak ditemukan");
+  const h = snap.val();
+
+  const eventName = prompt("Nama event:", h.event_name || "");
+  if(eventName === null) return;
+  const teamA = prompt("Nama Team A:", h.team_a || "TEAM A");
+  if(teamA === null) return;
+  const scoreA = prompt("Score Team A:", h.score_a ?? 0);
+  if(scoreA === null) return;
+  const teamB = prompt("Nama Team B:", h.team_b || "TEAM B");
+  if(teamB === null) return;
+  const scoreB = prompt("Score Team B:", h.score_b ?? 0);
+  if(scoreB === null) return;
+
+  const playerA1 = prompt("Pemain A1:", h.player_a1 || "");
+  if(playerA1 === null) return;
+  const playerA2 = prompt("Pemain A2:", h.player_a2 || "");
+  if(playerA2 === null) return;
+  const playerB1 = prompt("Pemain B1:", h.player_b1 || "");
+  if(playerB1 === null) return;
+  const playerB2 = prompt("Pemain B2:", h.player_b2 || "");
+  if(playerB2 === null) return;
+
+  await update(ref(db, "scoreboard/history/" + key), {
+    event_name:eventName.trim(),
+    team_a:teamA.trim(),
+    team_b:teamB.trim(),
+    score_a:Math.max(0, Number(scoreA || 0)),
+    score_b:Math.max(0, Number(scoreB || 0)),
+    player_a1:playerA1.trim(),
+    player_a2:playerA2.trim(),
+    player_b1:playerB1.trim(),
+    player_b2:playerB2.trim(),
+    edited_at:new Date().toLocaleString("id-ID")
+  });
+}
+
+setInterval(renderAll, 500);
+setInterval(renderTournament, 1000);
+init();
+// counter_landscape_autostart disabled: supaya menu bawah tidak hilang setelah login
+</script>
+</body>
+</html>
