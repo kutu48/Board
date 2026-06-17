@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Digital Scoreboard Online v4</title>
+  <title>Digital Scoreboard Online v5</title>
   <style>
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#020617;color:white}
@@ -651,6 +651,37 @@ const DEFAULT_FIREBASE_CONFIG = {
 let voiceEnabled = localStorage.getItem('scoreboard_voice_enabled') === '1';
 let prevScoreA = null;
 let prevScoreB = null;
+let uiRestoredOnce = false;
+
+const DRAFT_FIELD_IDS = [
+  "eventName","mode","period","teamA","teamB",
+  "playerA1","playerA2","playerB1","playerB2",
+  "colorA","colorB","logoA","logoB",
+  "timerMinutes","timerMode",
+  "settingVoiceEnabled","settingVoiceScore","settingVoiceStatus","settingVoiceRate","settingVoiceDelay","settingBuzzerVolume",
+  "sponsorLeft","sponsorRight","sponsorLogoLeft","sponsorLogoRight","runningText",
+  "operatorNameInput","operatorPassInput","tournamentViewMode","tournamentImportText"
+];
+
+function markDraftField(el){
+  if(!el || !el.id) return;
+  if(!DRAFT_FIELD_IDS.includes(el.id)) return;
+  el.dataset.userDirty = "1";
+  el.dataset.userEditingAt = String(Date.now());
+}
+
+function clearDraftFields(ids){
+  (ids || DRAFT_FIELD_IDS).forEach(id => {
+    const el = document.getElementById(id);
+    if(el){
+      delete el.dataset.userDirty;
+      delete el.dataset.userEditingAt;
+    }
+  });
+}
+
+document.addEventListener("input", e => markDraftField(e.target));
+document.addEventListener("change", e => markDraftField(e.target));
 
 const qs = new URLSearchParams(location.search);
 
@@ -855,8 +886,10 @@ document.addEventListener("visibilitychange", () => {
 function setInputValue(id, value){
   const el = $(id);
   if(!el) return;
-  // Jangan overwrite input/select saat user sedang mengetik/memilih.
+  // FIX v5: jangan overwrite draft yang belum disimpan.
+  // Firebase onValue bisa terpanggil karena timer/score/device lain, jadi input admin tidak boleh balik default/kosong.
   if(document.activeElement === el) return;
+  if(el.dataset.userDirty === "1") return;
   el.value = value ?? "";
 }
 
@@ -950,7 +983,10 @@ async function init(){
     onValue(ref(db, "scoreboard/state"), (snap) => {
       currentState = {...DEFAULT_STATE, ...(snap.val() || {})};
       renderAll();
-      restoreUiSession();
+      if(!uiRestoredOnce){
+        restoreUiSession();
+        uiRestoredOnce = true;
+      }
     });
 
     onValue(ref(db, "scoreboard/history"), (snap) => {
@@ -1337,6 +1373,7 @@ function renderAll(){
     setInputValue("sponsorLogoLeft", s.sponsor_logo_left || "");
     setInputValue("sponsorLogoRight", s.sponsor_logo_right || "");
     setInputValue("runningText", s.running_text || "");
+    setInputValue("tournamentViewMode", s.tournament_view_mode || "list");
     renderOperatorLoginOptions();
     renderOperatorList();
     $("scoreA").innerText = s.score_a;
@@ -1539,11 +1576,11 @@ window.operatorLogin = async function(){
   saveUiSession();
 }
 
-window.setMatch = function(){
+window.setMatch = async function(){
   if(!requireAdmin()) return;
   const rule = getSportRule($("mode").value);
 
-  update(ref(db, "scoreboard/state"), {
+  await update(ref(db, "scoreboard/state"), {
     event_name:($("eventName").value || DEFAULT_STATE.event_name).trim(),
     mode:rule.mode,
     period:rule.period,
@@ -1563,34 +1600,38 @@ window.setMatch = function(){
     match_winner:"",
     last_point_status:""
   });
+  clearDraftFields(["eventName","mode","period"]);
 }
 
-window.setNames = function(){
+window.setNames = async function(){
   if(!requireAdmin()) return;
-  update(ref(db, "scoreboard/state"), {
+  await update(ref(db, "scoreboard/state"), {
     team_a:$("teamA").value || "TEAM A",
     team_b:$("teamB").value || "TEAM B"
   });
+  clearDraftFields(["teamA","teamB"]);
 }
 
-window.setPlayers = function(){
+window.setPlayers = async function(){
   if(!requireAdmin()) return;
-  update(ref(db, "scoreboard/state"), {
+  await update(ref(db, "scoreboard/state"), {
     player_a1:$("playerA1").value.trim(),
     player_a2:$("playerA2").value.trim(),
     player_b1:$("playerB1").value.trim(),
     player_b2:$("playerB2").value.trim()
   });
+  clearDraftFields(["playerA1","playerA2","playerB1","playerB2"]);
 }
 
-window.setVisual = function(){
+window.setVisual = async function(){
   if(!requireAdmin()) return;
-  update(ref(db, "scoreboard/state"), {
+  await update(ref(db, "scoreboard/state"), {
     color_a:$("colorA").value,
     color_b:$("colorB").value,
     logo_a:$("logoA").value.trim(),
     logo_b:$("logoB").value.trim()
   });
+  clearDraftFields(["colorA","colorB","logoA","logoB"]);
 }
 
 window.changeScore = async function(team, delta){
@@ -1628,16 +1669,17 @@ window.resetSetSportMatch = async function(){
   });
 }
 
-window.timerSet = function(){
+window.timerSet = async function(){
   if(!requireControl()) return;
   const minutes = Number($("timerMinutes").value || 0);
   const mode = $("timerMode") ? $("timerMode").value : "stopwatch";
-  update(ref(db, "scoreboard/state"), {
+  await update(ref(db, "scoreboard/state"), {
     timer_seconds: minutes * 60,
     timer_mode:mode,
     timer_running:false,
     timer_started_at:0
   });
+  clearDraftFields(["timerMinutes","timerMode"]);
 }
 
 window.timerStart = function(){
@@ -1819,6 +1861,7 @@ window.saveSoundSettings = async function(){
   });
   voiceEnabled = $("settingVoiceEnabled").value === "1";
   localStorage.setItem("scoreboard_voice_enabled", voiceEnabled ? "1" : "0");
+  clearDraftFields(["settingVoiceEnabled","settingVoiceScore","settingVoiceStatus","settingVoiceRate","settingVoiceDelay","settingBuzzerVolume"]);
   alert("Setting sound disimpan");
 }
 
@@ -1837,6 +1880,7 @@ window.saveTvVisualSettings = async function(){
     sponsor_logo_right:$("sponsorLogoRight").value.trim(),
     running_text:$("runningText").value.trim()
   });
+  clearDraftFields(["sponsorLeft","sponsorRight","sponsorLogoLeft","sponsorLogoRight","runningText"]);
   alert("Sponsor dan running text TV sudah diupdate");
 }
 
@@ -1863,6 +1907,7 @@ window.addOperatorAccount = async function(){
   await saveOperators(ops);
   $("operatorNameInput").value = "";
   $("operatorPassInput").value = "";
+  clearDraftFields(["operatorNameInput","operatorPassInput"]);
   alert("Operator berhasil ditambahkan");
 }
 
@@ -2240,6 +2285,7 @@ window.importTournamentData = async function(){
       tournament_view_mode:parsed.view,
       active_match_id:""
     });
+    clearDraftFields(["tournamentImportText"]);
     alert("Import berhasil");
   }catch(e){
     alert("Import gagal: " + e.message);
@@ -2377,6 +2423,7 @@ window.setTournamentViewMode = async function(){
   if(!requireAdmin()) return;
   const mode = $("tournamentViewMode") ? $("tournamentViewMode").value : "list";
   await update(ref(db, "scoreboard/state"), {tournament_view_mode:mode});
+  clearDraftFields(["tournamentViewMode"]);
 }
 
 function getTournamentChampion(matches){
